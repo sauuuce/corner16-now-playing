@@ -90,6 +90,18 @@ export default async function handler(req, res) {
     return res.status(200).json(nowPlaying);
   } catch (error) {
     console.error('Error fetching now playing:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      env_check: {
+        has_client_id: !!SPOTIFY_CLIENT_ID,
+        has_client_secret: !!SPOTIFY_CLIENT_SECRET,
+        has_refresh_token: !!SPOTIFY_REFRESH_TOKEN,
+        client_id_length: SPOTIFY_CLIENT_ID?.length,
+        client_secret_length: SPOTIFY_CLIENT_SECRET?.length,
+        refresh_token_length: SPOTIFY_REFRESH_TOKEN?.length,
+      }
+    });
     return res.status(500).json({ 
       error: 'Failed to fetch now playing',
       is_playing: false 
