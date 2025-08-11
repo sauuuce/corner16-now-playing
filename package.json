@@ -1,6 +1,6 @@
 {
   "name": "spotify-now-playing-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Spotify Now Playing API integration for Framer",
   "main": "index.js",
   "scripts": {
