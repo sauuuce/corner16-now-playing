@@ -10,7 +10,31 @@ A complete serverless API solution for displaying your Spotify "Now Playing" sta
 npm install
 ```
 
-### 2. Get Your Spotify Refresh Token
+### 2. Create Spotify App
+
+1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new app with these settings:
+   - **Redirect URI**: `http://localhost:3000/callback`
+   - **Required Scopes**: `user-read-currently-playing user-read-playback-state`
+3. Note your **Client ID** and **Client Secret**
+
+### 3. Configure Environment Variables
+
+Copy the example environment file and update it with your credentials:
+
+```bash
+cp .env.example .env.local
+```
+
+Update `.env.local` with your Spotify app credentials:
+
+```env
+SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+SPOTIFY_REFRESH_TOKEN=your_refresh_token_here
+```
+
+### 4. Get Your Spotify Refresh Token
 
 Run the authorization script to get your refresh token:
 
@@ -21,20 +45,10 @@ npm run auth
 This will:
 - Start a local server at `http://localhost:3000`
 - Open your browser and click "Authorize Spotify Access"
-- Log in to your Spotify account (Client ID: `ea6a84cb94eb45dab4d99b30b9676051`)
-- Copy the refresh token from the success page
+- Log in to your Spotify account
+- Copy the refresh token from the success page and add it to your `.env.local` file
 
-### 3. Configure Environment Variables
-
-Update `.env.local` with your refresh token:
-
-```env
-SPOTIFY_CLIENT_ID=ea6a84cb94eb45dab4d99b30b9676051
-SPOTIFY_CLIENT_SECRET=427048c82e8442d3a1689eeccbb668ef
-SPOTIFY_REFRESH_TOKEN=your_actual_refresh_token_here
-```
-
-### 4. Deploy to Vercel
+### 5. Deploy to Vercel
 
 ```bash
 # Install Vercel CLI (if not already installed)
@@ -45,11 +59,11 @@ npm run deploy
 ```
 
 During deployment, add your environment variables:
-- `SPOTIFY_CLIENT_ID`: `ea6a84cb94eb45dab4d99b30b9676051`
-- `SPOTIFY_CLIENT_SECRET`: `427048c82e8442d3a1689eeccbb668ef`
-- `SPOTIFY_REFRESH_TOKEN`: (the token you got from step 2)
+- `SPOTIFY_CLIENT_ID`: Your Spotify app's Client ID
+- `SPOTIFY_CLIENT_SECRET`: Your Spotify app's Client Secret  
+- `SPOTIFY_REFRESH_TOKEN`: The token you got from step 4
 
-### 5. Test Your API
+### 6. Test Your API
 
 After deployment, test your endpoint:
 - `https://your-vercel-url.vercel.app/api/spotify/now-playing`
@@ -182,17 +196,18 @@ This API can also be deployed to:
 - Make sure you're using the full deployed URL (not localhost)
 - Check that your Vercel deployment has the correct CORS headers
 
-## 📝 Your Spotify App Details
+## 📝 Spotify App Configuration
 
-- **Client ID**: `ea6a84cb94eb45dab4d99b30b9676051`
-- **Client Secret**: `427048c82e8442d3a1689eeccbb668ef` (keep secure!)
+When creating your Spotify app, use these settings:
+
 - **Required Scopes**: `user-read-currently-playing user-read-playback-state`
 - **Redirect URI**: `http://localhost:3000/callback` (for authorization only)
 
 ## 🎯 Next Steps
 
-1. Run `npm run auth` to get your refresh token
-2. Update `.env.local` with the token
-3. Deploy with `npm run deploy`
-4. Update your Framer component with the deployed URL
-5. Enjoy your live Spotify integration! 🎵
+1. Create your Spotify app on the Developer Dashboard
+2. Copy `.env.example` to `.env.local` and add your credentials
+3. Run `npm run auth` to get your refresh token
+4. Deploy with `npm run deploy`
+5. Update your Framer component with the deployed URL
+6. Enjoy your live Spotify integration! 🎵
