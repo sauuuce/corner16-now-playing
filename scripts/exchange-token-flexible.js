@@ -1,5 +1,13 @@
-const SPOTIFY_CLIENT_ID = 'ea6a84cb94eb45dab4d99b30b9676051';
-const SPOTIFY_CLIENT_SECRET = '427048c82e8442d3a1689eeccbb668ef';
+require('dotenv').config();
+
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+
+if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+  console.error('❌ Missing required environment variables: SPOTIFY_CLIENT_ID and/or SPOTIFY_CLIENT_SECRET');
+  console.error('Please create a .env file with your Spotify credentials.');
+  process.exit(1);
+}
 
 // Add fetch polyfill for older Node.js versions
 if (typeof fetch === 'undefined') {
@@ -39,8 +47,8 @@ async function exchangeCodeForToken(code, redirectUri) {
     console.log('\n🔒 Keep this token secure and never share it publicly!');
     console.log('\n📋 Your complete .env.local should look like:');
     console.log('---');
-    console.log('SPOTIFY_CLIENT_ID=ea6a84cb94eb45dab4d99b30b9676051');
-    console.log('SPOTIFY_CLIENT_SECRET=427048c82e8442d3a1689eeccbb668ef');
+    console.log('SPOTIFY_CLIENT_ID=your_client_id_here');
+    console.log('SPOTIFY_CLIENT_SECRET=your_client_secret_here');
     console.log(`SPOTIFY_REFRESH_TOKEN=${data.refresh_token}`);
     console.log('---');
     

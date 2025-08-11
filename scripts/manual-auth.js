@@ -1,6 +1,14 @@
-const SPOTIFY_CLIENT_ID = 'ea6a84cb94eb45dab4d99b30b9676051';
-const SPOTIFY_CLIENT_SECRET = '427048c82e8442d3a1689eeccbb668ef';
+require('dotenv').config();
+
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SCOPES = 'user-read-currently-playing user-read-playback-state';
+
+if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+  console.error('❌ Missing required environment variables: SPOTIFY_CLIENT_ID and/or SPOTIFY_CLIENT_SECRET');
+  console.error('Please create a .env file with your Spotify credentials.');
+  process.exit(1);
+}
 
 console.log('🎵 Spotify Manual Authorization Process\n');
 
@@ -23,7 +31,7 @@ console.log('=' .repeat(80));
 
 console.log('\n🔒 IMPORTANT: You need to add this redirect URI to your Spotify app first:\n');
 console.log('STEP 1: Go to https://developer.spotify.com/dashboard');
-console.log('STEP 2: Click on your app (Client ID: ea6a84cb94eb45dab4d99b30b9676051)');
+console.log(`STEP 2: Click on your app (Client ID: ${SPOTIFY_CLIENT_ID})`);
 console.log('STEP 3: Click "Edit Settings"');
 console.log('STEP 4: In "Redirect URIs" section, add: https://developer.spotify.com/callback');
 console.log('STEP 5: Click "Save"');

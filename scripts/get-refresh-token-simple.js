@@ -1,8 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
 
-const SPOTIFY_CLIENT_ID = 'ea6a84cb94eb45dab4d99b30b9676051';
-const SPOTIFY_CLIENT_SECRET = '427048c82e8442d3a1689eeccbb668ef';
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+
+if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+  console.error('❌ Missing required environment variables: SPOTIFY_CLIENT_ID and/or SPOTIFY_CLIENT_SECRET');
+  console.error('Please create a .env file with your Spotify credentials.');
+  process.exit(1);
+}
 
 // Use Spotify's standard redirect URI for testing
 const REDIRECT_URI = 'https://example.com/callback';
@@ -75,8 +82,8 @@ SPOTIFY_REFRESH_TOKEN=${data.refresh_token}
       <hr>
       <h3>Complete Environment Variables for Vercel:</h3>
       <pre style="background: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-SPOTIFY_CLIENT_ID=ea6a84cb94eb45dab4d99b30b9676051
-SPOTIFY_CLIENT_SECRET=427048c82e8442d3a1689eeccbb668ef
+SPOTIFY_CLIENT_ID=your_client_id_here
+SPOTIFY_CLIENT_SECRET=your_client_secret_here
 SPOTIFY_REFRESH_TOKEN=${data.refresh_token}
       </pre>
     `);
