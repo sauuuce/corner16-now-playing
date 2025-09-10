@@ -1,250 +1,24 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { addPropertyControls, ControlType, useIsStaticRenderer } from "framer";
+import React, { useEffect, useState, useMemo, useCallback, lazy, Suspense } from "react";
+import { addPropertyControls, ControlType } from "framer";
 
-// Animated Music Note Component (integrated)
-function AnimatedMusicNote({
-  color,
-  size = 24,
-  animationSpeed = 1.5,
-  symbolType = "eighth",
-  showFloatingSymbols = true,
-  centralSymbolMode = "default",
-  centralCustomText = "♪",
-  centralCustomSvg = "",
-  customSymbolMode = "preset",
-  customSymbol1 = "♪",
-  customSymbol2 = "♫",
-  customSvg1 = "",
-  customSvg2 = "",
-}) {
-  const isStatic = useIsStaticRenderer();
+// Lazy load the animated components to reduce initial bundle size
+const LazyAnimatedComponents = lazy(() => import('./AnimatedComponents'));
 
-  const noteVariants = {
-    animate: {
-      y: [0, -8, 0],
-      rotate: [0, 5, -5, 0],
-      scale: [1, 1.1, 1],
-    },
-  };
+// Loading fallback component for lazy-loaded animations
+const AnimationFallback = ({ iconSize, fallbackIcon }) => (
+  <div
+    style={{
+      fontSize: `${iconSize}px`,
+      color: "currentColor",
+      flexShrink: 0,
+    }}
+  >
+    {fallbackIcon}
+  </div>
+);
 
-  const beamVariants = {
-    animate: {
-      scaleY: [1, 1.2, 0.8, 1],
-      rotate: [0, 2, -2, 0],
-    },
-  };
-
-  const animationProps = isStatic
-    ? {}
-    : {
-        variants: noteVariants,
-        animate: "animate",
-        transition: {
-          duration: animationSpeed,
-          repeat: Infinity,
-          ease: "easeInOut",
-        },
-      };
-
-  const beamAnimationProps = isStatic
-    ? {}
-    : {
-        variants: beamVariants,
-        animate: "animate",
-        transition: {
-          duration: animationSpeed * 0.8,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 0.1,
-        },
-      };
-
-  const getFloatingSymbolContent = (symbolNumber) => {
-    if (customSymbolMode === "text") {
-      return symbolNumber === 1 ? customSymbol1 : customSymbol2;
-    } else if (customSymbolMode === "svg") {
-      const svgContent = symbolNumber === 1 ? customSvg1 : customSvg2;
-      if (svgContent) {
-        return (
-          <div
-            dangerouslySetInnerHTML={{ __html: svgContent }}
-            style={{
-              width: size * 0.3,
-              height: size * 0.3,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          />
-        );
-      }
-    }
-
-    // Preset symbols based on symbolType
-    switch (symbolType) {
-      case "treble":
-        return symbolNumber === 1 ? "𝄞" : "♪";
-      case "bass":
-        return symbolNumber === 1 ? "𝄢" : "♫";
-      case "quarter":
-        return symbolNumber === 1 ? "♩" : "♪";
-      case "eighth":
-      default:
-        return symbolNumber === 1 ? "♪" : "♫";
-    }
-  };
-
-  const getCentralSymbol = () => {
-    if (centralSymbolMode === "text" && centralCustomText) {
-      return (
-        <motion.div
-          style={{
-            fontSize: size * 0.8,
-            color: color,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          {...animationProps}
-        >
-          {centralCustomText}
-        </motion.div>
-      );
-    } else if (centralSymbolMode === "svg" && centralCustomSvg) {
-      return (
-        <motion.div
-          dangerouslySetInnerHTML={{ __html: centralCustomSvg }}
-          style={{
-            width: size,
-            height: size,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          {...animationProps}
-        />
-      );
-    }
-
-    // Default SVG note
-    return (
-      <motion.svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        {...animationProps}
-        style={{
-          filter: isStatic ? "none" : "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
-        }}
-      >
-        {/* Note head */}
-        <motion.ellipse
-          cx="6"
-          cy="18"
-          rx="3"
-          ry="2"
-          fill={color}
-          transform="rotate(-20 6 18)"
-        />
-
-        {/* Note stem */}
-        <motion.rect
-          x="8.5"
-          y="6"
-          width="1.5"
-          height="12"
-          fill={color}
-          {...beamAnimationProps}
-        />
-
-        {/* Note beam/flag */}
-        <motion.path
-          d="M10 6 Q16 4 18 8 Q16 6 10 8 Z"
-          fill={color}
-          {...beamAnimationProps}
-        />
-
-        {/* Second beam */}
-        <motion.path
-          d="M10 9 Q15 7 17 10 Q15 8 10 10 Z"
-          fill={color}
-          {...beamAnimationProps}
-        />
-      </motion.svg>
-    );
-  };
-
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        flexShrink: 0,
-      }}
-    >
-      {getCentralSymbol()}
-
-      {/* Floating musical symbols */}
-      {!isStatic && showFloatingSymbols && (
-        <>
-          <motion.div
-            style={{
-              position: "absolute",
-              fontSize: customSymbolMode === "svg" ? "inherit" : size * 0.3,
-              color: color,
-              opacity: 0.6,
-              left: "-20%",
-              top: "-10%",
-            }}
-            animate={{
-              y: [0, -10, 0],
-              opacity: [0.6, 0.2, 0.6],
-              scale: [1, 0.8, 1],
-            }}
-            transition={{
-              duration: animationSpeed * 1.5,
-              repeat: Infinity,
-              delay: 0.3,
-            }}
-          >
-            {getFloatingSymbolContent(1)}
-          </motion.div>
-
-          <motion.div
-            style={{
-              position: "absolute",
-              fontSize: customSymbolMode === "svg" ? "inherit" : size * 0.25,
-              color: color,
-              opacity: 0.4,
-              right: "-15%",
-              top: "10%",
-            }}
-            animate={{
-              y: [0, -8, 0],
-              opacity: [0.4, 0.1, 0.4],
-              scale: [1, 0.9, 1],
-            }}
-            transition={{
-              duration: animationSpeed * 1.2,
-              repeat: Infinity,
-              delay: 0.6,
-            }}
-          >
-            {getFloatingSymbolContent(2)}
-          </motion.div>
-        </>
-      )}
-    </div>
-  );
-}
-
-export default function SpotifyNowPlaying(props) {
+// Main component optimized with React.memo
+const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   // Destructure props with defaults
   const {
     font = "system-ui, -apple-system, sans-serif",
@@ -286,49 +60,45 @@ export default function SpotifyNowPlaying(props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  // Memoize fetchData to prevent recreation on every render
+  const fetchData = useCallback(async () => {
+    try {
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    const fetchData = async () => {
-      try {
-        const response = await fetch(apiUrl, {
-          method: "GET",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Spotify authentication failed - please check your API credentials",
-            );
-          } else if (response.status === 500) {
-            throw new Error(
-              "Spotify API temporarily unavailable - please try again later",
-            );
-          } else {
-            throw new Error(
-              `Unable to connect to Spotify (${response.status})`,
-            );
-          }
-        }
-
-        const jsonData = await response.json();
-        setTrack(jsonData);
-        setError(null);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        if (!controller.signal.aborted) {
-          setError(err.message);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error(
+            "Spotify authentication failed - please check your API credentials",
+          );
+        } else if (response.status === 500) {
+          throw new Error(
+            "Spotify API temporarily unavailable - please try again later",
+          );
+        } else {
+          throw new Error(
+            `Unable to connect to Spotify (${response.status})`,
+          );
         }
       }
-    };
+
+      const jsonData = await response.json();
+      setTrack(jsonData);
+      setError(null);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl]);
+
+  useEffect(() => {
+    const controller = new AbortController();
 
     fetchData();
 
@@ -339,17 +109,19 @@ export default function SpotifyNowPlaying(props) {
       controller.abort();
       clearInterval(interval);
     };
-  }, [apiUrl]);
+  }, [fetchData]);
 
   // Check if current content is a podcast
-  const isPodcast =
+  const isPodcast = useMemo(() =>
     track &&
     (track.currently_playing_type === "episode" ||
       track.item?.type === "episode" ||
-      (track.item && !track.item.artists)); // Fallback check for missing artists field
+      (track.item && !track.item.artists)), // Fallback check for missing artists field
+    [track]
+  );
 
-  // Background styles - plain color with custom radius
-  const getBackgroundStyle = () => {
+  // Background styles - plain color with custom radius (memoized)
+  const backgroundStyle = useMemo(() => {
     if (removeBackground) {
       return {
         borderRadius: `${backgroundRadius}px`,
@@ -360,10 +132,10 @@ export default function SpotifyNowPlaying(props) {
       background: backgroundColor,
       borderRadius: `${backgroundRadius}px`,
     };
-  };
+  }, [removeBackground, backgroundRadius, backgroundColor]);
 
-  // Text color logic
-  const getTextColor = (opacity = 1) => {
+  // Text color logic (memoized)
+  const getTextColor = useCallback((opacity = 1) => {
     if (removeBackground && fontColor === "white") {
       return `rgba(0, 0, 0, ${opacity})`;
     }
@@ -376,10 +148,10 @@ export default function SpotifyNowPlaying(props) {
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  };
+  }, [removeBackground, fontColor]);
 
-  // Icon color (matches text color)
-  const getIconColor = () => {
+  // Icon color (matches text color) - memoized
+  const iconColor = useMemo(() => {
     if (removeBackground && fontColor === "white") {
       return "rgba(0, 0, 0, 0.8)";
     }
@@ -387,7 +159,7 @@ export default function SpotifyNowPlaying(props) {
       return "rgba(255, 255, 255, 0.9)";
     }
     return fontColor;
-  };
+  }, [removeBackground, fontColor]);
 
   if (loading) {
     return (
@@ -399,7 +171,7 @@ export default function SpotifyNowPlaying(props) {
           fontFamily: font,
           fontSize: `${fontSize}px`,
           fontWeight: fontWeight,
-          ...getBackgroundStyle(),
+          ...backgroundStyle,
         }}
       >
         <div>Loading your music...</div>
@@ -437,7 +209,7 @@ export default function SpotifyNowPlaying(props) {
           fontFamily: font,
           fontSize: `${fontSize}px`,
           fontWeight: fontWeight,
-          ...getBackgroundStyle(),
+          ...backgroundStyle,
         }}
       >
         <div
@@ -449,21 +221,23 @@ export default function SpotifyNowPlaying(props) {
           }}
         >
           {showAnimatedIcon ? (
-            <AnimatedMusicNote
-              color={getIconColor()}
-              size={iconSize}
-              animationSpeed={animationSpeed}
-              symbolType={symbolType}
-              showFloatingSymbols={false}
-              centralSymbolMode={centralSymbolMode}
-              centralCustomText={centralCustomText}
-              centralCustomSvg={centralCustomSvg}
-              customSymbolMode={customSymbolMode}
-              customSymbol1={customSymbol1}
-              customSymbol2={customSymbol2}
-              customSvg1={customSvg1}
-              customSvg2={customSvg2}
-            />
+            <Suspense fallback={<AnimationFallback iconSize={iconSize} fallbackIcon={fallbackIcon} />}>
+              <LazyAnimatedComponents.AnimatedMusicNote
+                color={iconColor}
+                size={iconSize}
+                animationSpeed={animationSpeed}
+                symbolType={symbolType}
+                showFloatingSymbols={false}
+                centralSymbolMode={centralSymbolMode}
+                centralCustomText={centralCustomText}
+                centralCustomSvg={centralCustomSvg}
+                customSymbolMode={customSymbolMode}
+                customSymbol1={customSymbol1}
+                customSymbol2={customSymbol2}
+                customSvg1={customSvg1}
+                customSvg2={customSvg2}
+              />
+            </Suspense>
           ) : (
             <span style={{ fontSize: `${iconSize}px` }}>{fallbackIcon}</span>
           )}
@@ -487,7 +261,7 @@ export default function SpotifyNowPlaying(props) {
         color: fontColor,
         fontFamily: font,
         maxWidth: "400px",
-        ...getBackgroundStyle(),
+        ...backgroundStyle,
       }}
     >
       {!hideAlbumCover && track.item?.album?.images?.[2] && (
@@ -591,21 +365,23 @@ export default function SpotifyNowPlaying(props) {
       </div>
       <div style={{ marginLeft: "12px" }}>
         {showAnimatedIcon ? (
-          <AnimatedMusicNote
-            color={getIconColor()}
-            size={iconSize}
-            animationSpeed={animationSpeed}
-            symbolType={symbolType}
-            showFloatingSymbols={showFloatingSymbols}
-            centralSymbolMode={centralSymbolMode}
-            centralCustomText={centralCustomText}
-            centralCustomSvg={centralCustomSvg}
-            customSymbolMode={customSymbolMode}
-            customSymbol1={customSymbol1}
-            customSymbol2={customSymbol2}
-            customSvg1={customSvg1}
-            customSvg2={customSvg2}
-          />
+          <Suspense fallback={<AnimationFallback iconSize={iconSize} fallbackIcon={fallbackIcon} />}>
+            <LazyAnimatedComponents.AnimatedMusicNote
+              color={iconColor}
+              size={iconSize}
+              animationSpeed={animationSpeed}
+              symbolType={symbolType}
+              showFloatingSymbols={showFloatingSymbols}
+              centralSymbolMode={centralSymbolMode}
+              centralCustomText={centralCustomText}
+              centralCustomSvg={centralCustomSvg}
+              customSymbolMode={customSymbolMode}
+              customSymbol1={customSymbol1}
+              customSymbol2={customSymbol2}
+              customSvg1={customSvg1}
+              customSvg2={customSvg2}
+            />
+          </Suspense>
         ) : (
           <div
             style={{
@@ -620,7 +396,10 @@ export default function SpotifyNowPlaying(props) {
       </div>
     </div>
   );
-}
+});
+
+// Export the optimized component
+export default SpotifyNowPlaying;
 
 // Add property controls for Framer's UI
 addPropertyControls(SpotifyNowPlaying, {
