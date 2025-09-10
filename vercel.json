@@ -1,7 +1,7 @@
 {
   "public": true,
   "functions": {
-    "api/spotify/now-playing.ts": {
+    "api/spotify/now-playing.js": {
       "maxDuration": 10
     },
     "api/test.js": {
