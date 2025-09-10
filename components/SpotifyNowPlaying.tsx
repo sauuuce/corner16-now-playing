@@ -21,16 +21,105 @@ const useIsStaticRenderer = (): boolean => {
     false
   );
 };
-import type {
-  SpotifyNowPlayingProps,
-  AnimatedMusicNoteProps,
-  AnimationFallbackProps,
-  SpotifyError,
-  TrackState,
-  SpotifyErrorBoundaryState,
-  CacheEntry,
-} from "../types/components";
-import type { NowPlayingResponse } from "../types/spotify";
+// TypeScript interfaces defined inline
+interface SpotifyNowPlayingProps {
+  font?: string;
+  fontSize?: number;
+  fontWeight?: string;
+  fontColor?: string;
+  hideAlbumCover?: boolean;
+  albumCoverSize?: number;
+  albumCoverRadius?: number;
+  removeBackground?: boolean;
+  backgroundColor?: string;
+  backgroundRadius?: number;
+  singleLine?: boolean;
+  hideAlbumName?: boolean;
+  showAnimatedIcon?: boolean;
+  animationSpeed?: number;
+  symbolType?: "treble" | "bass" | "quarter" | "eighth";
+  showFloatingSymbols?: boolean;
+  iconSize?: number;
+  fallbackIcon?: string;
+  centralSymbolMode?: "default" | "text" | "svg";
+  centralCustomText?: string;
+  centralCustomSvg?: string;
+  customSymbolMode?: "preset" | "text" | "svg";
+  customSymbol1?: string;
+  customSymbol2?: string;
+  customSvg1?: string;
+  customSvg2?: string;
+  apiUrl?: string;
+  enableSpotifyLink?: boolean;
+}
+
+interface AnimatedMusicNoteProps {
+  color: string;
+  size?: number;
+  animationSpeed?: number;
+  symbolType?: "treble" | "bass" | "quarter" | "eighth";
+  showFloatingSymbols?: boolean;
+  centralSymbolMode?: "default" | "text" | "svg";
+  centralCustomText?: string;
+  centralCustomSvg?: string;
+  customSymbolMode?: "preset" | "text" | "svg";
+  customSymbol1?: string;
+  customSymbol2?: string;
+  customSvg1?: string;
+  customSvg2?: string;
+}
+
+interface SpotifyError {
+  message: string;
+  type: "api_error" | "network_error" | "unknown";
+  status?: number;
+  timestamp: number;
+  canRetry: boolean;
+}
+
+interface TrackState {
+  is_playing: boolean;
+  item?: {
+    name: string;
+    artists: string[];
+    album?: {
+      name: string;
+      images: Array<{ url: string }>;
+    };
+    external_urls?: {
+      spotify: string;
+    };
+  };
+  currently_playing_type?: string;
+}
+
+interface SpotifyErrorBoundaryState {
+  hasError: boolean;
+  error: string | null;
+  errorInfo: ErrorInfo | null;
+  retryCount: number;
+}
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+interface NowPlayingResponse {
+  is_playing: boolean;
+  item?: {
+    name: string;
+    artists: string[];
+    album?: {
+      name: string;
+      images: Array<{ url: string }>;
+    };
+    external_urls?: {
+      spotify: string;
+    };
+  };
+  currently_playing_type?: string;
+}
 
 // Error Boundary Component
 class SpotifyErrorBoundary extends Component<
@@ -528,6 +617,12 @@ const LazyAnimatedMusicNote = lazy(() =>
   Promise.resolve({ default: AnimatedMusicNote }),
 );
 
+// Define AnimationFallback props interface
+interface AnimationFallbackProps {
+  iconSize: number;
+  fallbackIcon: string;
+}
+
 // Loading fallback component for lazy-loaded animations
 const AnimationFallback = React.memo<AnimationFallbackProps>(
   ({ iconSize, fallbackIcon }) => (
@@ -584,8 +679,8 @@ const SpotifyNowPlaying = React.memo<SpotifyNowPlayingProps>(
     const [retryCount, setRetryCount] = useState<number>(0);
     const [isRetrying, setIsRetrying] = useState<boolean>(false);
     const retryCountRef = useRef<number>(0);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const intervalRef = useRef<number | null>(null);
+    const timeoutRef = useRef<number | null>(null);
     const isPlayingRef = useRef<boolean>(false);
 
     // Exponential backoff calculation (memoized)
@@ -698,7 +793,7 @@ const SpotifyNowPlaying = React.memo<SpotifyNowPlayingProps>(
               retryCountRef.current += 1;
               setRetryCount(retryCountRef.current);
               fetchData(true);
-            }, delay);
+            }, delay) as unknown as number;
           } else {
             setError({
               message: errorObj.message || "Unknown error",
@@ -732,7 +827,7 @@ const SpotifyNowPlaying = React.memo<SpotifyNowPlayingProps>(
 
       intervalRef.current = setTimeout(() => {
         fetchData();
-      }, interval);
+      }, interval) as unknown as number;
     }, [error, getPollingInterval, fetchData]);
 
     // Manual retry function (memoized)
