@@ -9,6 +9,7 @@
     "auth": "node scripts/get-refresh-token-simple.js",
     "auth-manual": "node scripts/manual-auth.js",
     "auth-exchange": "node scripts/exchange-token.js",
+    "test": "node tests/api.test.js",
     "test:auth": "node tests/auth.test.js",
     "test:api": "node tests/api.test.js",
     "test:improved-api": "node tests/improved-api.test.js",
