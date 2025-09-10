@@ -7,13 +7,33 @@ import React, {
   Suspense,
   Component,
   useMemo,
+  ErrorInfo,
+  ReactNode,
 } from "react";
 import { motion } from "framer-motion";
-import { addPropertyControls, ControlType, useIsStaticRenderer } from "framer";
+import { addPropertyControls, ControlType } from "framer";
+
+// Polyfill for useIsStaticRenderer if not available
+const useIsStaticRenderer = (): boolean => {
+  return typeof window === 'undefined' || (window as any).__framer__?.isStatic || false;
+};
+import type { 
+  SpotifyNowPlayingProps, 
+  AnimatedMusicNoteProps, 
+  AnimationFallbackProps,
+  SpotifyError,
+  TrackState,
+  SpotifyErrorBoundaryState,
+  CacheEntry
+} from '../types/components';
+import type { NowPlayingResponse } from '../types/spotify';
 
 // Error Boundary Component
-class SpotifyErrorBoundary extends Component {
-  constructor(props) {
+class SpotifyErrorBoundary extends Component<
+  SpotifyNowPlayingProps & { children: ReactNode },
+  SpotifyErrorBoundaryState
+> {
+  constructor(props: SpotifyNowPlayingProps & { children: ReactNode }) {
     super(props);
     this.state = {
       hasError: false,
@@ -23,11 +43,11 @@ class SpotifyErrorBoundary extends Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): Partial<SpotifyErrorBoundaryState> {
+    return { hasError: true, error: error.message || 'An unexpected error occurred' };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error("Spotify component error:", error, errorInfo);
     this.setState({
       errorInfo,
@@ -35,7 +55,7 @@ class SpotifyErrorBoundary extends Component {
     });
   }
 
-  handleRetry = () => {
+  handleRetry = (): void => {
     this.setState({
       hasError: false,
       error: null,
@@ -147,8 +167,8 @@ class SpotifyErrorBoundary extends Component {
 }
 
 // Global cache and request management for multiple component instances
-const globalCache = new Map();
-const pendingRequests = new Map();
+const globalCache = new Map<string, CacheEntry<NowPlayingResponse>>();
+const pendingRequests = new Map<string, Promise<Response>>();
 const CACHE_TTL = {
   PLAYING: 5 * 1000, // 5 seconds when playing
   PAUSED: 60 * 1000, // 60 seconds when paused
@@ -156,12 +176,12 @@ const CACHE_TTL = {
 };
 
 // Request deduplication utility
-async function deduplicatedFetch(url, options = {}) {
+async function deduplicatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const cacheKey = `${url}-${JSON.stringify(options)}`;
 
   // If there's already a pending request for this URL, wait for it
   if (pendingRequests.has(cacheKey)) {
-    return pendingRequests.get(cacheKey);
+    return pendingRequests.get(cacheKey)!;
   }
 
   // Create new request
@@ -174,7 +194,7 @@ async function deduplicatedFetch(url, options = {}) {
 }
 
 // Intelligent caching utility
-function getCachedData(url, isPlaying) {
+function getCachedData(url: string, isPlaying: boolean): NowPlayingResponse | null {
   const cacheKey = `${url}-${isPlaying}`;
   const cached = globalCache.get(cacheKey);
 
@@ -191,7 +211,7 @@ function getCachedData(url, isPlaying) {
   return cached.data;
 }
 
-function setCachedData(url, isPlaying, data) {
+function setCachedData(url: string, isPlaying: boolean, data: NowPlayingResponse): void {
   const cacheKey = `${url}-${isPlaying}`;
   globalCache.set(cacheKey, {
     data,
@@ -200,7 +220,7 @@ function setCachedData(url, isPlaying, data) {
 }
 
 // Animated Music Note Component (defined before lazy loading)
-function AnimatedMusicNote({
+const AnimatedMusicNote: React.FC<AnimatedMusicNoteProps> = ({
   color,
   size = 24,
   animationSpeed = 1.5,
@@ -214,7 +234,7 @@ function AnimatedMusicNote({
   customSymbol2 = "♫",
   customSvg1 = "",
   customSvg2 = "",
-}) {
+}) => {
   const isStatic = useIsStaticRenderer();
   const [animationError, setAnimationError] = useState(false);
 
@@ -269,7 +289,7 @@ function AnimatedMusicNote({
         };
 
   const getFloatingSymbolContent = useCallback(
-    (symbolNumber) => {
+    (symbolNumber: number) => {
       if (customSymbolMode === "text") {
         return symbolNumber === 1 ? customSymbol1 : customSymbol2;
       } else if (customSymbolMode === "svg") {
@@ -476,7 +496,7 @@ function AnimatedMusicNote({
       )}
     </div>
   );
-}
+};
 
 // Lazy load the animated components (defined after AnimatedMusicNote)
 const LazyAnimatedMusicNote = lazy(() =>
@@ -484,7 +504,7 @@ const LazyAnimatedMusicNote = lazy(() =>
 );
 
 // Loading fallback component for lazy-loaded animations
-const AnimationFallback = React.memo(({ iconSize, fallbackIcon }) => (
+const AnimationFallback = React.memo<AnimationFallbackProps>(({ iconSize, fallbackIcon }) => (
   <div
     style={{
       fontSize: `${iconSize}px`,
@@ -497,7 +517,7 @@ const AnimationFallback = React.memo(({ iconSize, fallbackIcon }) => (
 ));
 
 // Main component optimized with React.memo
-const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
+const SpotifyNowPlaying = React.memo<SpotifyNowPlayingProps>(function SpotifyNowPlaying(props) {
   // Destructure props with defaults
   const {
     font = "system-ui, -apple-system, sans-serif",
@@ -530,18 +550,18 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
     enableSpotifyLink = true,
   } = props;
 
-  const [track, setTrack] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const retryCountRef = useRef(0);
-  const intervalRef = useRef(null);
-  const timeoutRef = useRef(null);
-  const isPlayingRef = useRef(false);
+  const [track, setTrack] = useState<TrackState | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<SpotifyError | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
+  const retryCountRef = useRef<number>(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isPlayingRef = useRef<boolean>(false);
 
   // Exponential backoff calculation (memoized)
-  const getRetryDelay = useCallback((attempt) => {
+  const getRetryDelay = useCallback((attempt: number): number => {
     const baseDelay = 1000; // 1 second base delay
     const maxDelay = 30000; // 30 seconds max delay
     const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
@@ -549,14 +569,14 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   }, []);
 
   // Adaptive polling intervals (memoized)
-  const getPollingInterval = useCallback((isPlaying, hasError) => {
+  const getPollingInterval = useCallback((isPlaying: boolean, hasError: boolean): number => {
     if (hasError) return 30000; // 30s on error
     return isPlaying ? 5000 : 60000; // 5s when playing, 60s when paused
   }, []);
 
   // Optimized fetch function with caching and deduplication (memoized)
   const fetchData = useCallback(
-    async (isRetry = false) => {
+    async (isRetry: boolean = false): Promise<void> => {
       try {
         if (isRetry) {
           setIsRetrying(true);
@@ -581,8 +601,8 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
         });
 
         if (!response.ok) {
-          let errorMessage;
-          let shouldRetry = false;
+          let errorMessage: string;
+          let shouldRetry: boolean = false;
 
           switch (response.status) {
             case 401:
@@ -612,13 +632,13 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
               shouldRetry = response.status >= 500;
           }
 
-          const error = new Error(errorMessage);
+          const error: any = new Error(errorMessage);
           error.status = response.status;
           error.shouldRetry = shouldRetry;
           throw error;
         }
 
-        const jsonData = await response.json();
+          const jsonData = await response.json() as TrackState;
 
         // Update playing state reference
         isPlayingRef.current = jsonData.is_playing || false;
@@ -633,7 +653,8 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
       } catch (err) {
         console.error("Fetch error:", err);
 
-        const shouldRetry = err.shouldRetry && retryCountRef.current < 3;
+        const errorObj = err as any;
+        const shouldRetry = errorObj.shouldRetry && retryCountRef.current < 3;
 
         if (shouldRetry) {
           const delay = getRetryDelay(retryCountRef.current);
@@ -648,9 +669,9 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
           }, delay);
         } else {
           setError({
-            message: err.message,
-            type: err.status ? "api_error" : "network_error",
-            status: err.status,
+            message: errorObj.message || 'Unknown error',
+            type: errorObj.status ? "api_error" : "network_error",
+            status: errorObj.status,
             timestamp: Date.now(),
             canRetry: retryCountRef.current < 3,
           });
@@ -664,7 +685,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   );
 
   // Schedule next poll based on current state (memoized)
-  const scheduleNextPoll = useCallback(() => {
+  const scheduleNextPoll = useCallback((): void => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -683,7 +704,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   }, [error, getPollingInterval, fetchData]);
 
   // Manual retry function (memoized)
-  const handleRetry = useCallback(() => {
+  const handleRetry = useCallback((): void => {
     setError(null);
     retryCountRef.current = 0;
     setRetryCount(0);
@@ -716,7 +737,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
     () =>
       track &&
       (track.currently_playing_type === "episode" ||
-        track.item?.type === "episode" ||
+        (track as any).item?.type === "episode" ||
         (track.item && !track.item.artists)),
     [track],
   );
@@ -737,7 +758,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
 
   // Text color logic (memoized)
   const getTextColor = useCallback(
-    (opacity = 1) => {
+    (opacity: number = 1): string => {
       if (removeBackground && fontColor === "white") {
         return `rgba(0, 0, 0, ${opacity})`;
       }
@@ -1128,13 +1149,13 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
 });
 
 // Wrap the main component with error boundary
-function SpotifyNowPlayingWithErrorBoundary(props) {
+const SpotifyNowPlayingWithErrorBoundary: React.FC<SpotifyNowPlayingProps> = (props) => {
   return (
     <SpotifyErrorBoundary {...props}>
       <SpotifyNowPlaying {...props} />
     </SpotifyErrorBoundary>
   );
-}
+};
 
 // Add property controls to the exported component
 addPropertyControls(SpotifyNowPlayingWithErrorBoundary, {
