@@ -1,11 +1,11 @@
-import { corsMiddleware } from '../../utils/cors';
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { 
-  SpotifyTokenResponse, 
-  SpotifyCurrentlyPlayingResponse, 
+import { corsMiddleware } from "../../utils/cors";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type {
+  SpotifyTokenResponse,
+  SpotifyCurrentlyPlayingResponse,
   SpotifyTrack,
-  NowPlayingResponse 
-} from '../../types/spotify';
+  NowPlayingResponse,
+} from "../../types/spotify";
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -27,7 +27,9 @@ const TOKEN_ENDPOINT = "https://accounts.spotify.com/api/token";
 const NOW_PLAYING_ENDPOINT =
   "https://api.spotify.com/v1/me/player/currently-playing";
 
-async function getAccessToken(retryCount: number = 0): Promise<SpotifyTokenResponse> {
+async function getAccessToken(
+  retryCount: number = 0,
+): Promise<SpotifyTokenResponse> {
   const maxRetries = 2;
 
   try {
@@ -71,14 +73,20 @@ async function getAccessToken(retryCount: number = 0): Promise<SpotifyTokenRespo
 
     return response.json() as Promise<SpotifyTokenResponse>;
   } catch (error) {
-    if (error instanceof Error && error.name === "TypeError" && error.message.includes("fetch")) {
+    if (
+      error instanceof Error &&
+      error.name === "TypeError" &&
+      error.message.includes("fetch")
+    ) {
       throw new Error("Unable to connect to Spotify - network error");
     }
     throw error;
   }
 }
 
-async function getNowPlaying(retryCount: number = 0): Promise<NowPlayingResponse> {
+async function getNowPlaying(
+  retryCount: number = 0,
+): Promise<NowPlayingResponse> {
   const maxRetries = 2;
 
   try {
@@ -128,7 +136,7 @@ async function getNowPlaying(retryCount: number = 0): Promise<NowPlayingResponse
       throw new Error(`Unexpected Spotify API error: ${response.status}`);
     }
 
-    const data = await response.json() as SpotifyCurrentlyPlayingResponse;
+    const data = (await response.json()) as SpotifyCurrentlyPlayingResponse;
 
     if (!data.is_playing) {
       return { is_playing: false };
@@ -161,17 +169,24 @@ async function getNowPlaying(retryCount: number = 0): Promise<NowPlayingResponse
       };
     } else {
       // For episodes/podcasts, return not playing
-      return { is_playing: false       };
+      return { is_playing: false };
     }
   } catch (error) {
-    if (error instanceof Error && error.name === "TypeError" && error.message.includes("fetch")) {
+    if (
+      error instanceof Error &&
+      error.name === "TypeError" &&
+      error.message.includes("fetch")
+    ) {
       throw new Error("Unable to connect to Spotify - network error");
     }
     throw error;
   }
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<VercelResponse> {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+): Promise<VercelResponse> {
   // Apply secure CORS middleware
   corsMiddleware(req, res);
 
@@ -187,7 +202,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     return res.status(200).json(nowPlaying);
   } catch (error) {
-    console.error("Error fetching now playing:", error instanceof Error ? error.message : 'Unknown error');
+    console.error(
+      "Error fetching now playing:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return res.status(500).json({
       error: "Failed to fetch now playing",
       is_playing: false,
