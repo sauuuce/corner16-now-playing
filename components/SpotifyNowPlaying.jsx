@@ -199,25 +199,7 @@ function setCachedData(url, isPlaying, data) {
   });
 }
 
-// Lazy load the animated components to reduce initial bundle size
-const LazyAnimatedMusicNote = lazy(() =>
-  Promise.resolve({ default: AnimatedMusicNote }),
-);
-
-// Loading fallback component for lazy-loaded animations
-const AnimationFallback = React.memo(({ iconSize, fallbackIcon }) => (
-  <div
-    style={{
-      fontSize: `${iconSize}px`,
-      color: "currentColor",
-      flexShrink: 0,
-    }}
-  >
-    {fallbackIcon}
-  </div>
-));
-
-// Animated Music Note Component (integrated) with error handling
+// Animated Music Note Component (defined before lazy loading)
 function AnimatedMusicNote({
   color,
   size = 24,
@@ -496,6 +478,24 @@ function AnimatedMusicNote({
   );
 }
 
+// Lazy load the animated components (defined after AnimatedMusicNote)
+const LazyAnimatedMusicNote = lazy(() =>
+  Promise.resolve({ default: AnimatedMusicNote }),
+);
+
+// Loading fallback component for lazy-loaded animations
+const AnimationFallback = React.memo(({ iconSize, fallbackIcon }) => (
+  <div
+    style={{
+      fontSize: `${iconSize}px`,
+      color: "currentColor",
+      flexShrink: 0,
+    }}
+  >
+    {fallbackIcon}
+  </div>
+));
+
 // Main component optimized with React.memo
 const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   // Destructure props with defaults
@@ -512,26 +512,21 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
     backgroundRadius = 12,
     singleLine = false,
     hideAlbumName = false,
-    // Animation props
     showAnimatedIcon = true,
     animationSpeed = 1.5,
     symbolType = "eighth",
     showFloatingSymbols = true,
     iconSize = 24,
     fallbackIcon = "🎵",
-    // Central symbol customization
     centralSymbolMode = "default",
     centralCustomText = "♪",
     centralCustomSvg = "",
-    // Floating symbols customization
     customSymbolMode = "preset",
     customSymbol1 = "♪",
     customSymbol2 = "♫",
     customSvg1 = "",
     customSvg2 = "",
-    // API Configuration
     apiUrl = "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
-    // Click to open in Spotify
     enableSpotifyLink = true,
   } = props;
 
@@ -697,7 +692,6 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   }, [fetchData]);
 
   useEffect(() => {
-    // Initial fetch
     fetchData();
 
     return () => {
@@ -723,7 +717,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
       track &&
       (track.currently_playing_type === "episode" ||
         track.item?.type === "episode" ||
-        (track.item && !track.item.artists)), // Fallback check for missing artists field
+        (track.item && !track.item.artists)),
     [track],
   );
 
@@ -750,7 +744,6 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
       if (fontColor === "white") {
         return `rgba(255, 255, 255, ${opacity})`;
       }
-      // For custom colors, apply opacity
       const hex = fontColor.replace("#", "");
       const r = parseInt(hex.substr(0, 2), 16);
       const g = parseInt(hex.substr(2, 2), 16);
@@ -822,14 +815,16 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
             </>
           )}
         </div>
-        <style>
-          {`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
+        <style jsx>{`
+          @keyframes spin {
+            0% {
+              transform: rotate(0deg);
             }
-          `}
-        </style>
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
       </div>
     );
   }
@@ -1059,11 +1054,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
                 {trackName}
               </div>
             </div>
-            <div
-              style={{
-                marginBottom: hideAlbumName ? "0" : "2px",
-              }}
-            >
+            <div style={{ marginBottom: hideAlbumName ? "0" : "2px" }}>
               <div
                 style={{
                   fontWeight: fontWeight === "bold" ? "normal" : fontWeight,
