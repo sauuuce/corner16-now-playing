@@ -146,8 +146,9 @@ npm run auth
 - ✅ Client credentials are handled server-side only
 - ✅ Refresh token is stored securely in environment variables
 - ✅ No sensitive data exposed to client-side code
-- ✅ CORS headers configured for web access
+- ✅ **Secure CORS policy with configurable origins** (replaces wildcard)
 - ✅ Rate limiting considerations (5-second polling interval)
+- ✅ Additional security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection)
 
 ## 📦 File Structure
 
@@ -194,7 +195,44 @@ This API can also be deployed to:
 
 ### CORS errors in Framer
 - Make sure you're using the full deployed URL (not localhost)
-- Check that your Vercel deployment has the correct CORS headers
+- **Configure ALLOWED_ORIGINS environment variable** with your domain(s)
+- Check that your domain is included in the allowed origins list
+- In development, localhost origins are automatically allowed
+
+## 🔒 CORS Configuration
+
+This API now uses a secure CORS policy instead of wildcard origins. Configure allowed domains:
+
+### Environment Variables
+
+Add to your `.env` file:
+
+```bash
+# Comma-separated list of allowed origins
+ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com,https://app.yourdomain.com
+
+# Environment (development allows localhost automatically)
+NODE_ENV=production
+```
+
+### Development vs Production
+
+- **Development**: Localhost origins are automatically allowed
+- **Production**: Only origins in `ALLOWED_ORIGINS` are permitted
+- **Security**: Unallowed origins receive 403 Forbidden response
+
+### Example Configuration
+
+```bash
+# For a single domain
+ALLOWED_ORIGINS=https://myframer.site
+
+# For multiple domains
+ALLOWED_ORIGINS=https://myframer.site,https://www.myframer.site,https://app.myframer.site
+
+# For subdomains
+ALLOWED_ORIGINS=https://*.myframer.site
+```
 
 ## 📝 Spotify App Configuration
 
