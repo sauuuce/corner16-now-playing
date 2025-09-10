@@ -4,13 +4,13 @@
     "target": "ES2020",
     "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    
+
     // Module resolution
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    
+
     // Type checking
     "strict": true,
     "noImplicitAny": true,
@@ -20,38 +20,27 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    
+
     // Additional checks
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    
+
     // React support
-    "jsx": "react",
+    "jsx": "react-jsx",
     "allowJs": true,
     "skipLibCheck": true,
-    
+
     // No output needed for Vercel - it handles TS directly
     "noEmit": true,
-    
+
     // Other options
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "incremental": true
   },
-  "include": [
-    "api/**/*",
-    "components/**/*",
-    "utils/**/*",
-    "types/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "tests",
-    "scripts",
-    "debug"
-  ]
+  "include": ["api/**/*", "components/**/*", "utils/**/*", "types/**/*"],
+  "exclude": ["node_modules", "dist", "tests", "scripts", "debug"]
 }
