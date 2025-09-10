@@ -3,6 +3,9 @@
  * Replaces wildcard CORS with configurable allowed origins
  */
 
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { NextFunction } from 'express';
+
 // Parse allowed origins from environment variable
 const ALLOWED_ORIGINS =
   process.env.ALLOWED_ORIGINS?.split(",").map((origin) => origin.trim()) || [];
@@ -17,9 +20,8 @@ const DEFAULT_DEV_ORIGINS = [
 
 /**
  * Get allowed origins based on environment
- * @returns {string[]} Array of allowed origins
  */
-function getAllowedOrigins() {
+function getAllowedOrigins(): string[] {
   if (process.env.NODE_ENV === "development") {
     return [...ALLOWED_ORIGINS, ...DEFAULT_DEV_ORIGINS];
   }
@@ -28,10 +30,8 @@ function getAllowedOrigins() {
 
 /**
  * Check if an origin is allowed
- * @param {string} origin - The origin to check
- * @returns {boolean} Whether the origin is allowed
  */
-function isOriginAllowed(origin) {
+function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return false;
 
   const allowedOrigins = getAllowedOrigins();
@@ -62,13 +62,10 @@ function isOriginAllowed(origin) {
 
 /**
  * Set CORS headers based on request origin
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {boolean} Whether the origin is allowed
  */
-function setCorsHeaders(req, res) {
+function setCorsHeaders(req: VercelRequest, res: VercelResponse): boolean {
   const origin = req.headers.origin;
-  const allowedOrigins = getAllowedOrigins();
+  // const allowedOrigins = getAllowedOrigins();
 
   // Set default CORS headers
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -77,10 +74,10 @@ function setCorsHeaders(req, res) {
 
   // Handle origin validation
   if (isOriginAllowed(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Origin", origin!);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     return true;
-  } else if (process.env.NODE_ENV === "development") {
+  } else if (process.env.NODE_ENV === "development" && origin) {
     // In development, allow the origin but log a warning
     console.warn(`CORS: Unallowed origin in development: ${origin}`);
     res.setHeader("Access-Control-Allow-Origin", origin);
@@ -94,11 +91,8 @@ function setCorsHeaders(req, res) {
 
 /**
  * Handle CORS preflight requests
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {boolean} Whether to continue processing the request
  */
-function handleCorsPreflight(req, res) {
+function handleCorsPreflight(req: VercelRequest, res: VercelResponse): boolean {
   if (req.method === "OPTIONS") {
     const isAllowed = setCorsHeaders(req, res);
     if (isAllowed) {
@@ -116,11 +110,8 @@ function handleCorsPreflight(req, res) {
 
 /**
  * CORS middleware for Express/Vercel functions
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Next middleware function (optional)
  */
-function corsMiddleware(req, res, next) {
+function corsMiddleware(req: VercelRequest, res: VercelResponse, next?: NextFunction): void {
   // Handle preflight requests
   if (handleCorsPreflight(req, res)) {
     return;
@@ -144,7 +135,7 @@ function corsMiddleware(req, res, next) {
   }
 }
 
-module.exports = {
+export {
   corsMiddleware,
   setCorsHeaders,
   isOriginAllowed,

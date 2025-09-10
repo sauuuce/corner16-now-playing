@@ -1,13 +1,14 @@
 {
   "public": true,
   "functions": {
-    "api/spotify/now-playing.js": {
+    "api/spotify/now-playing.ts": {
       "maxDuration": 10
     },
     "api/test.js": {
       "maxDuration": 10
     }
   },
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/api/(.*)",
