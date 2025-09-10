@@ -157,6 +157,39 @@ async function getNowPlaying(retryCount = 0) {
   }
 }
 
+// Server-side caching
+const serverCache = new Map();
+const CACHE_TTL_SERVER = {
+  PLAYING: 5 * 1000, // 5 seconds when playing
+  PAUSED: 60 * 1000, // 60 seconds when paused
+  ERROR: 30 * 1000, // 30 seconds on error
+};
+
+function getServerCachedData(isPlaying) {
+  const cacheKey = `now-playing-${isPlaying}`;
+  const cached = serverCache.get(cacheKey);
+  
+  if (!cached) return null;
+  
+  const now = Date.now();
+  const ttl = isPlaying ? CACHE_TTL_SERVER.PLAYING : CACHE_TTL_SERVER.PAUSED;
+  
+  if (now - cached.timestamp > ttl) {
+    serverCache.delete(cacheKey);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+function setServerCachedData(isPlaying, data) {
+  const cacheKey = `now-playing-${isPlaying}`;
+  serverCache.set(cacheKey, {
+    data,
+    timestamp: Date.now(),
+  });
+}
+
 export default async function handler(req, res) {
   // Apply secure CORS middleware
   corsMiddleware(req, res);
@@ -166,17 +199,47 @@ export default async function handler(req, res) {
   }
 
   try {
-    const nowPlaying = await getNowPlaying();
+    // Check server-side cache first
+    const cachedData = getServerCachedData(true) || getServerCachedData(false);
+    if (cachedData) {
+      // Set appropriate cache headers based on playing state
+      const isPlaying = cachedData.is_playing || false;
+      const cacheMaxAge = isPlaying ? 5 : 60; // 5s for playing, 60s for paused
+      
+      res.setHeader("Cache-Control", `s-maxage=${cacheMaxAge}, stale-while-revalidate=${cacheMaxAge * 2}`);
+      res.setHeader("X-Cache", "HIT");
+      
+      return res.status(200).json(cachedData);
+    }
 
-    // Set cache control
-    res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate");
+    const nowPlaying = await getNowPlaying();
+    
+    // Cache the response
+    setServerCachedData(nowPlaying.is_playing || false, nowPlaying);
+
+    // Set dynamic cache control based on playing state
+    const isPlaying = nowPlaying.is_playing || false;
+    const cacheMaxAge = isPlaying ? 5 : 60; // 5s for playing, 60s for paused
+    
+    res.setHeader("Cache-Control", `s-maxage=${cacheMaxAge}, stale-while-revalidate=${cacheMaxAge * 2}`);
+    res.setHeader("X-Cache", "MISS");
+    res.setHeader("X-Playing-State", isPlaying ? "playing" : "paused");
 
     return res.status(200).json(nowPlaying);
   } catch (error) {
     console.error("Error fetching now playing:", error.message);
-    return res.status(500).json({
+    
+    // Cache error responses for shorter time
+    const errorResponse = {
       error: "Failed to fetch now playing",
       is_playing: false,
-    });
+    };
+    
+    setServerCachedData(false, errorResponse);
+    
+    res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=60");
+    res.setHeader("X-Cache", "ERROR");
+    
+    return res.status(500).json(errorResponse);
   }
 }

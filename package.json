@@ -22,8 +22,9 @@
     "react"
   ],
   "dependencies": {
-    "dotenv": "^17.2.1",
-    "express": "^4.18.2"
+    "dotenv": "^17.2.2",
+    "express": "^4.18.2",
+    "jest": "^30.1.3"
   },
   "devDependencies": {
     "node-fetch": "^2.6.12"
