@@ -34,7 +34,7 @@ async function getAccessToken(retryCount = 0) {
       },
       body: new URLSearchParams({
         grant_type: "refresh_token",
-        refresh_token: SPOTIFY_REFRESH_TOKEN!,
+        refresh_token: SPOTIFY_REFRESH_TOKEN,
       }),
     });
 
@@ -197,4 +197,4 @@ module.exports = async function handler(req, res) {
       is_playing: false,
     });
   }
-}
+};

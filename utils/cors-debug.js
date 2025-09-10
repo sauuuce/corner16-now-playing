@@ -71,7 +71,7 @@ function setCorsHeaders(req, res) {
 
   // Handle origin validation
   if (isOriginAllowed(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin!);
+    res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     return true;
   } else if (process.env.NODE_ENV === "development" && origin) {
