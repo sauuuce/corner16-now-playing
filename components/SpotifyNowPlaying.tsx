@@ -3,15 +3,37 @@ import React, {
   useState,
   useRef,
   useCallback,
+  lazy,
+  Suspense,
   Component,
   useMemo,
+  ErrorInfo,
+  ReactNode,
 } from "react";
 import { motion } from "framer-motion";
-import { addPropertyControls, ControlType, useIsStaticRenderer } from "framer";
+import { addPropertyControls, ControlType } from "framer";
+
+// Polyfill for useIsStaticRenderer if not available
+const useIsStaticRenderer = (): boolean => {
+  return typeof window === 'undefined' || (window as any).__framer__?.isStatic || false;
+};
+import type { 
+  SpotifyNowPlayingProps, 
+  AnimatedMusicNoteProps, 
+  AnimationFallbackProps,
+  SpotifyError,
+  TrackState,
+  SpotifyErrorBoundaryState,
+  CacheEntry
+} from '../types/components';
+import type { NowPlayingResponse } from '../types/spotify';
 
 // Error Boundary Component
-class SpotifyErrorBoundary extends Component {
-  constructor(props) {
+class SpotifyErrorBoundary extends Component<
+  SpotifyNowPlayingProps & { children: ReactNode },
+  SpotifyErrorBoundaryState
+> {
+  constructor(props: SpotifyNowPlayingProps & { children: ReactNode }) {
     super(props);
     this.state = {
       hasError: false,
@@ -21,11 +43,11 @@ class SpotifyErrorBoundary extends Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): Partial<SpotifyErrorBoundaryState> {
+    return { hasError: true, error: error.message || 'An unexpected error occurred' };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error("Spotify component error:", error, errorInfo);
     this.setState({
       errorInfo,
@@ -33,22 +55,23 @@ class SpotifyErrorBoundary extends Component {
     });
   }
 
-  handleRetry = () => {
+  handleRetry = (): void => {
     this.setState({
       hasError: false,
       error: null,
       errorInfo: null,
-      retryCount: (this.state["retryCount"] || 0) + 1,
+      retryCount: this.state.retryCount + 1,
     });
   };
 
   render() {
-    if (this.state["hasError"]) {
-      const error = this.state["error"];
-      const retryCount = this.state["retryCount"];
-      const font = this.props["font"] || "system-ui, -apple-system, sans-serif";
-      const fontSize = this.props["fontSize"] || 16;
-      const backgroundRadius = this.props["backgroundRadius"] || 12;
+    if (this.state.hasError) {
+      const { error, retryCount } = this.state;
+      const {
+        font = "system-ui, -apple-system, sans-serif",
+        fontSize = 16,
+        backgroundRadius = 12,
+      } = this.props;
 
       return (
         <div
@@ -139,13 +162,13 @@ class SpotifyErrorBoundary extends Component {
       );
     }
 
-    return this.props["children"];
+    return this.props.children;
   }
 }
 
 // Global cache and request management for multiple component instances
-const globalCache = new Map();
-const pendingRequests = new Map();
+const globalCache = new Map<string, CacheEntry<NowPlayingResponse>>();
+const pendingRequests = new Map<string, Promise<Response>>();
 const CACHE_TTL = {
   PLAYING: 5 * 1000, // 5 seconds when playing
   PAUSED: 60 * 1000, // 60 seconds when paused
@@ -153,53 +176,25 @@ const CACHE_TTL = {
 };
 
 // Request deduplication utility
-async function deduplicatedFetch(url, options = {}) {
+async function deduplicatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const cacheKey = `${url}-${JSON.stringify(options)}`;
 
   // If there's already a pending request for this URL, wait for it
   if (pendingRequests.has(cacheKey)) {
-    return pendingRequests.get(cacheKey);
+    return pendingRequests.get(cacheKey)!;
   }
 
-  // Create new request that handles response parsing to avoid "body stream already read"
-  const requestPromise = fetch(url, options)
-    .then(async (response) => {
-      // Parse the response data immediately and store it with the response metadata
-      let responseData = null;
-      let parseError = null;
-
-      try {
-        responseData = await response.json();
-      } catch (error) {
-        parseError = error;
-      }
-
-      // Return a response-like object that includes the parsed data
-      return {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        url: response.url,
-        data: responseData,
-        parseError: parseError,
-        // Keep json method for compatibility but return cached data
-        json: async () => {
-          if (parseError) throw parseError;
-          return responseData;
-        },
-      };
-    })
-    .finally(() => {
-      pendingRequests.delete(cacheKey);
-    });
+  // Create new request
+  const requestPromise = fetch(url, options).finally(() => {
+    pendingRequests.delete(cacheKey);
+  });
 
   pendingRequests.set(cacheKey, requestPromise);
   return requestPromise;
 }
 
 // Intelligent caching utility
-function getCachedData(url, isPlaying) {
+function getCachedData(url: string, isPlaying: boolean): NowPlayingResponse | null {
   const cacheKey = `${url}-${isPlaying}`;
   const cached = globalCache.get(cacheKey);
 
@@ -216,7 +211,7 @@ function getCachedData(url, isPlaying) {
   return cached.data;
 }
 
-function setCachedData(url, isPlaying, data) {
+function setCachedData(url: string, isPlaying: boolean, data: NowPlayingResponse): void {
   const cacheKey = `${url}-${isPlaying}`;
   globalCache.set(cacheKey, {
     data,
@@ -225,7 +220,7 @@ function setCachedData(url, isPlaying, data) {
 }
 
 // Animated Music Note Component (defined before lazy loading)
-function AnimatedMusicNote({
+const AnimatedMusicNote: React.FC<AnimatedMusicNoteProps> = ({
   color,
   size = 24,
   animationSpeed = 1.5,
@@ -239,7 +234,7 @@ function AnimatedMusicNote({
   customSymbol2 = "♫",
   customSvg1 = "",
   customSvg2 = "",
-}) {
+}) => {
   const isStatic = useIsStaticRenderer();
   const [animationError, setAnimationError] = useState(false);
 
@@ -294,7 +289,7 @@ function AnimatedMusicNote({
         };
 
   const getFloatingSymbolContent = useCallback(
-    (symbolNumber) => {
+    (symbolNumber: number) => {
       if (customSymbolMode === "text") {
         return symbolNumber === 1 ? customSymbol1 : customSymbol2;
       } else if (customSymbolMode === "svg") {
@@ -501,69 +496,72 @@ function AnimatedMusicNote({
       )}
     </div>
   );
-}
+};
 
-// Simple fallback component for animations
-function AnimationFallback({ iconSize, fallbackIcon }) {
-  return (
-    <div
-      style={{
-        fontSize: `${iconSize}px`,
-        color: "currentColor",
-        flexShrink: 0,
-      }}
-    >
-      {fallbackIcon}
-    </div>
-  );
-}
+// Lazy load the animated components (defined after AnimatedMusicNote)
+const LazyAnimatedMusicNote = lazy(() =>
+  Promise.resolve({ default: AnimatedMusicNote }),
+);
+
+// Loading fallback component for lazy-loaded animations
+const AnimationFallback = React.memo<AnimationFallbackProps>(({ iconSize, fallbackIcon }) => (
+  <div
+    style={{
+      fontSize: `${iconSize}px`,
+      color: "currentColor",
+      flexShrink: 0,
+    }}
+  >
+    {fallbackIcon}
+  </div>
+));
 
 // Main component optimized with React.memo
-const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
-  // Destructure props with defaults using safer approach
-  const font = props["font"] || "system-ui, -apple-system, sans-serif";
-  const fontSize = props["fontSize"] || 16;
-  const fontWeight = props["fontWeight"] || "bold";
-  const fontColor = props["fontColor"] || "black";
-  const hideAlbumCover = props["hideAlbumCover"] || false;
-  const albumCoverSize = props["albumCoverSize"] || 60;
-  const albumCoverRadius = props["albumCoverRadius"] || 8;
-  const removeBackground = props["removeBackground"] || false;
-  const backgroundColor = props["backgroundColor"] || "white";
-  const backgroundRadius = props["backgroundRadius"] || 12;
-  const singleLine = props["singleLine"] || false;
-  const hideAlbumName = props["hideAlbumName"] || false;
-  const showAnimatedIcon = props["showAnimatedIcon"] !== false;
-  const animationSpeed = props["animationSpeed"] || 1.5;
-  const symbolType = props["symbolType"] || "eighth";
-  const showFloatingSymbols = props["showFloatingSymbols"] !== false;
-  const iconSize = props["iconSize"] || 24;
-  const fallbackIcon = props["fallbackIcon"] || "🎵";
-  const centralSymbolMode = props["centralSymbolMode"] || "default";
-  const centralCustomText = props["centralCustomText"] || "♪";
-  const centralCustomSvg = props["centralCustomSvg"] || "";
-  const customSymbolMode = props["customSymbolMode"] || "preset";
-  const customSymbol1 = props["customSymbol1"] || "♪";
-  const customSymbol2 = props["customSymbol2"] || "♫";
-  const customSvg1 = props["customSvg1"] || "";
-  const customSvg2 = props["customSvg2"] || "";
-  const apiUrl =
-    props["apiUrl"] ||
-    "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing";
-  const enableSpotifyLink = props["enableSpotifyLink"] !== false;
+const SpotifyNowPlaying = React.memo<SpotifyNowPlayingProps>(function SpotifyNowPlaying(props) {
+  // Destructure props with defaults
+  const {
+    font = "system-ui, -apple-system, sans-serif",
+    fontSize = 16,
+    fontWeight = "bold",
+    fontColor = "black",
+    hideAlbumCover = false,
+    albumCoverSize = 60,
+    albumCoverRadius = 8,
+    removeBackground = false,
+    backgroundColor = "white",
+    backgroundRadius = 12,
+    singleLine = false,
+    hideAlbumName = false,
+    showAnimatedIcon = true,
+    animationSpeed = 1.5,
+    symbolType = "eighth",
+    showFloatingSymbols = true,
+    iconSize = 24,
+    fallbackIcon = "🎵",
+    centralSymbolMode = "default",
+    centralCustomText = "♪",
+    centralCustomSvg = "",
+    customSymbolMode = "preset",
+    customSymbol1 = "♪",
+    customSymbol2 = "♫",
+    customSvg1 = "",
+    customSvg2 = "",
+    apiUrl = "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
+    enableSpotifyLink = true,
+  } = props;
 
-  const [track, setTrack] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const retryCountRef = useRef(0);
-  const intervalRef = useRef(null);
-  const timeoutRef = useRef(null);
-  const isPlayingRef = useRef(false);
+  const [track, setTrack] = useState<TrackState | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<SpotifyError | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
+  const retryCountRef = useRef<number>(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isPlayingRef = useRef<boolean>(false);
 
   // Exponential backoff calculation (memoized)
-  const getRetryDelay = useCallback((attempt) => {
+  const getRetryDelay = useCallback((attempt: number): number => {
     const baseDelay = 1000; // 1 second base delay
     const maxDelay = 30000; // 30 seconds max delay
     const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
@@ -571,14 +569,14 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   }, []);
 
   // Adaptive polling intervals (memoized)
-  const getPollingInterval = useCallback((isPlaying, hasError) => {
+  const getPollingInterval = useCallback((isPlaying: boolean, hasError: boolean): number => {
     if (hasError) return 30000; // 30s on error
     return isPlaying ? 5000 : 60000; // 5s when playing, 60s when paused
   }, []);
 
   // Optimized fetch function with caching and deduplication (memoized)
   const fetchData = useCallback(
-    async (isRetry = false) => {
+    async (isRetry: boolean = false): Promise<void> => {
       try {
         if (isRetry) {
           setIsRetrying(true);
@@ -603,8 +601,8 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
         });
 
         if (!response.ok) {
-          let errorMessage;
-          let shouldRetry = false;
+          let errorMessage: string;
+          let shouldRetry: boolean = false;
 
           switch (response.status) {
             case 401:
@@ -634,13 +632,13 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
               shouldRetry = response.status >= 500;
           }
 
-          const error = new Error(errorMessage);
-          error["status"] = response.status;
-          error["shouldRetry"] = shouldRetry;
+          const error: any = new Error(errorMessage);
+          error.status = response.status;
+          error.shouldRetry = shouldRetry;
           throw error;
         }
 
-        const jsonData = await response.json();
+          const jsonData = await response.json() as TrackState;
 
         // Update playing state reference
         isPlayingRef.current = jsonData.is_playing || false;
@@ -655,7 +653,8 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
       } catch (err) {
         console.error("Fetch error:", err);
 
-        const shouldRetry = err["shouldRetry"] && retryCountRef.current < 3;
+        const errorObj = err as any;
+        const shouldRetry = errorObj.shouldRetry && retryCountRef.current < 3;
 
         if (shouldRetry) {
           const delay = getRetryDelay(retryCountRef.current);
@@ -670,9 +669,9 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
           }, delay);
         } else {
           setError({
-            message: err.message,
-            type: err["status"] ? "api_error" : "network_error",
-            status: err["status"],
+            message: errorObj.message || 'Unknown error',
+            type: errorObj.status ? "api_error" : "network_error",
+            status: errorObj.status,
             timestamp: Date.now(),
             canRetry: retryCountRef.current < 3,
           });
@@ -686,7 +685,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   );
 
   // Schedule next poll based on current state (memoized)
-  const scheduleNextPoll = useCallback(() => {
+  const scheduleNextPoll = useCallback((): void => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
@@ -705,7 +704,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   }, [error, getPollingInterval, fetchData]);
 
   // Manual retry function (memoized)
-  const handleRetry = useCallback(() => {
+  const handleRetry = useCallback((): void => {
     setError(null);
     retryCountRef.current = 0;
     setRetryCount(0);
@@ -738,7 +737,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
     () =>
       track &&
       (track.currently_playing_type === "episode" ||
-        track.item?.type === "episode" ||
+        (track as any).item?.type === "episode" ||
         (track.item && !track.item.artists)),
     [track],
   );
@@ -759,7 +758,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
 
   // Text color logic (memoized)
   const getTextColor = useCallback(
-    (opacity = 1) => {
+    (opacity: number = 1): string => {
       if (removeBackground && fontColor === "white") {
         return `rgba(0, 0, 0, ${opacity})`;
       }
@@ -962,21 +961,30 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
           }}
         >
           {showAnimatedIcon ? (
-            <AnimatedMusicNote
-              color={iconColor}
-              size={iconSize}
-              animationSpeed={animationSpeed}
-              symbolType={symbolType}
-              showFloatingSymbols={false}
-              centralSymbolMode={centralSymbolMode}
-              centralCustomText={centralCustomText}
-              centralCustomSvg={centralCustomSvg}
-              customSymbolMode={customSymbolMode}
-              customSymbol1={customSymbol1}
-              customSymbol2={customSymbol2}
-              customSvg1={customSvg1}
-              customSvg2={customSvg2}
-            />
+            <Suspense
+              fallback={
+                <AnimationFallback
+                  iconSize={iconSize}
+                  fallbackIcon={fallbackIcon}
+                />
+              }
+            >
+              <LazyAnimatedMusicNote
+                color={iconColor}
+                size={iconSize}
+                animationSpeed={animationSpeed}
+                symbolType={symbolType}
+                showFloatingSymbols={false}
+                centralSymbolMode={centralSymbolMode}
+                centralCustomText={centralCustomText}
+                centralCustomSvg={centralCustomSvg}
+                customSymbolMode={customSymbolMode}
+                customSymbol1={customSymbol1}
+                customSymbol2={customSymbol2}
+                customSvg1={customSvg1}
+                customSvg2={customSvg2}
+              />
+            </Suspense>
           ) : (
             <span style={{ fontSize: `${iconSize}px` }}>{fallbackIcon}</span>
           )}
@@ -1100,21 +1108,30 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
       </div>
       <div style={{ marginLeft: "12px" }}>
         {showAnimatedIcon ? (
-          <AnimatedMusicNote
-            color={iconColor}
-            size={iconSize}
-            animationSpeed={animationSpeed}
-            symbolType={symbolType}
-            showFloatingSymbols={showFloatingSymbols}
-            centralSymbolMode={centralSymbolMode}
-            centralCustomText={centralCustomText}
-            centralCustomSvg={centralCustomSvg}
-            customSymbolMode={customSymbolMode}
-            customSymbol1={customSymbol1}
-            customSymbol2={customSymbol2}
-            customSvg1={customSvg1}
-            customSvg2={customSvg2}
-          />
+          <Suspense
+            fallback={
+              <AnimationFallback
+                iconSize={iconSize}
+                fallbackIcon={fallbackIcon}
+              />
+            }
+          >
+            <LazyAnimatedMusicNote
+              color={iconColor}
+              size={iconSize}
+              animationSpeed={animationSpeed}
+              symbolType={symbolType}
+              showFloatingSymbols={showFloatingSymbols}
+              centralSymbolMode={centralSymbolMode}
+              centralCustomText={centralCustomText}
+              centralCustomSvg={centralCustomSvg}
+              customSymbolMode={customSymbolMode}
+              customSymbol1={customSymbol1}
+              customSymbol2={customSymbol2}
+              customSvg1={customSvg1}
+              customSvg2={customSvg2}
+            />
+          </Suspense>
         ) : (
           <div
             style={{
@@ -1132,13 +1149,13 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
 });
 
 // Wrap the main component with error boundary
-function SpotifyNowPlayingWithErrorBoundary(props) {
+const SpotifyNowPlayingWithErrorBoundary: React.FC<SpotifyNowPlayingProps> = (props) => {
   return (
     <SpotifyErrorBoundary {...props}>
       <SpotifyNowPlaying {...props} />
     </SpotifyErrorBoundary>
   );
-}
+};
 
 // Add property controls to the exported component
 addPropertyControls(SpotifyNowPlayingWithErrorBoundary, {
