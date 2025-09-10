@@ -70,17 +70,29 @@ After deployment, test your endpoint:
 
 ## 📱 Using with Framer
 
-1. Copy the content from `components/SpotifyNowPlaying.jsx`
+### TypeScript Component (Recommended)
+
+1. Copy the content from `components/SpotifyNowPlaying.tsx` 
 2. Create a new code component in Framer
 3. Paste the code
-4. Update the API endpoint URL to your deployed Vercel URL:
+4. Update the API endpoint URL to your deployed Vercel URL
 
-```javascript
-// Change this line in the component:
-const response = await fetch("/api/spotify/now-playing")
+### Key Features:
+- ✅ **Full TypeScript compatibility** - Works seamlessly in Framer's TypeScript environment
+- ✅ **Self-contained** - All type definitions included inline (no external dependencies)
+- ✅ **Browser-compatible** - Uses proper browser types instead of Node.js types
+- ✅ **Zero compilation errors** - Fully compatible with Framer's build system
 
-// To your deployed URL:
-const response = await fetch("https://your-vercel-url.vercel.app/api/spotify/now-playing")
+### Component Integration:
+
+The component comes pre-configured with your deployment URL. Simply update the `apiUrl` prop:
+
+```typescript
+// Default API URL in component
+apiUrl = "https://corner16-now-playing-135s3pi0h-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing"
+
+// Update to your deployed URL
+apiUrl = "https://your-vercel-url.vercel.app/api/spotify/now-playing"
 ```
 
 ## 🎵 Component Features
@@ -157,7 +169,7 @@ npm run auth
 │   └── spotify/
 │       └── now-playing.js     # Main API endpoint
 ├── components/
-│   └── SpotifyNowPlaying.jsx  # Framer component
+│   └── SpotifyNowPlaying.tsx  # Framer TypeScript component (recommended)
 ├── scripts/
 │   └── get-refresh-token.js   # Authorization helper
 ├── .env.local                 # Your environment variables
