@@ -246,6 +246,28 @@ SPOTIFY_REFRESH_TOKEN=your_refresh_token
 - **Issues Created**: 11 optimization issues (DEV-1 through DEV-11)
 - **Priority Distribution**: 1 Urgent, 5 High, 4 Medium, 1 Low
 
+### 🚨 **CRITICAL: Multiple PR Integration Protocol**
+When working with multiple PRs that may have overlapping functionality:
+
+**ALWAYS CHECK FIRST:**
+1. **Analyze PR conflicts** - Do the PRs modify the same files or implement competing approaches?
+2. **Assess integration benefits** - Would merging all PRs create a superior unified solution?
+3. **Check architectural compatibility** - Do the PRs use incompatible patterns (e.g., different error handling, component structures)?
+
+**IF CONFLICTS EXIST:**
+1. **Create unified integration branch** first, before addressing individual issues
+2. **Resolve architectural conflicts** between competing implementations (error boundaries vs performance optimizations vs caching)
+3. **Test combined functionality** comprehensively to ensure all features work together
+4. **Create single, cohesive solution** that incorporates the best features from all PRs
+5. **NEVER work on PRs in isolation** if they affect the same core functionality
+
+**EXAMPLE CONFLICTS TO WATCH FOR:**
+- Error handling strategies (try/catch vs error boundaries vs validation)
+- Component architecture (memo vs class vs hooks patterns)
+- State management approaches (useState vs useRef vs context)
+- Performance optimizations that conflict with error handling
+- Import/export patterns that affect lazy loading
+
 ### Issue Creation Pattern
 ```bash
 # During development, create issues for:
