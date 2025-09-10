@@ -1,3 +1,5 @@
+const { corsMiddleware } = require('../../utils/cors');
+
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REFRESH_TOKEN = process.env.SPOTIFY_REFRESH_TOKEN;
@@ -156,15 +158,8 @@ async function getNowPlaying(retryCount = 0) {
 }
 
 export default async function handler(req, res) {
-  // Set CORS headers for all requests
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  // Apply secure CORS middleware
+  corsMiddleware(req, res);
 
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
