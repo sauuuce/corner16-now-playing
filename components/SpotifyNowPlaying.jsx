@@ -3,8 +3,6 @@ import React, {
   useState,
   useRef,
   useCallback,
-  lazy,
-  Suspense,
   Component,
   useMemo,
 } from "react";
@@ -40,18 +38,17 @@ class SpotifyErrorBoundary extends Component {
       hasError: false,
       error: null,
       errorInfo: null,
-      retryCount: this.state.retryCount + 1,
+      retryCount: (this.state["retryCount"] || 0) + 1,
     });
   };
 
   render() {
-    if (this.state.hasError) {
-      const { error, retryCount } = this.state;
-      const {
-        font = "system-ui, -apple-system, sans-serif",
-        fontSize = 16,
-        backgroundRadius = 12,
-      } = this.props;
+    if (this.state["hasError"]) {
+      const error = this.state["error"];
+      const retryCount = this.state["retryCount"];
+      const font = this.props["font"] || "system-ui, -apple-system, sans-serif";
+      const fontSize = this.props["fontSize"] || 16;
+      const backgroundRadius = this.props["backgroundRadius"] || 12;
 
       return (
         <div
@@ -142,7 +139,7 @@ class SpotifyErrorBoundary extends Component {
       );
     }
 
-    return this.props.children;
+    return this.props["children"];
   }
 }
 
@@ -164,10 +161,38 @@ async function deduplicatedFetch(url, options = {}) {
     return pendingRequests.get(cacheKey);
   }
 
-  // Create new request
-  const requestPromise = fetch(url, options).finally(() => {
-    pendingRequests.delete(cacheKey);
-  });
+  // Create new request that handles response parsing to avoid "body stream already read"
+  const requestPromise = fetch(url, options)
+    .then(async (response) => {
+      // Parse the response data immediately and store it with the response metadata
+      let responseData = null;
+      let parseError = null;
+
+      try {
+        responseData = await response.json();
+      } catch (error) {
+        parseError = error;
+      }
+
+      // Return a response-like object that includes the parsed data
+      return {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        url: response.url,
+        data: responseData,
+        parseError: parseError,
+        // Keep json method for compatibility but return cached data
+        json: async () => {
+          if (parseError) throw parseError;
+          return responseData;
+        },
+      };
+    })
+    .finally(() => {
+      pendingRequests.delete(cacheKey);
+    });
 
   pendingRequests.set(cacheKey, requestPromise);
   return requestPromise;
@@ -478,57 +503,54 @@ function AnimatedMusicNote({
   );
 }
 
-// Lazy load the animated components (defined after AnimatedMusicNote)
-const LazyAnimatedMusicNote = lazy(() =>
-  Promise.resolve({ default: AnimatedMusicNote }),
-);
-
-// Loading fallback component for lazy-loaded animations
-const AnimationFallback = React.memo(({ iconSize, fallbackIcon }) => (
-  <div
-    style={{
-      fontSize: `${iconSize}px`,
-      color: "currentColor",
-      flexShrink: 0,
-    }}
-  >
-    {fallbackIcon}
-  </div>
-));
+// Simple fallback component for animations
+function AnimationFallback({ iconSize, fallbackIcon }) {
+  return (
+    <div
+      style={{
+        fontSize: `${iconSize}px`,
+        color: "currentColor",
+        flexShrink: 0,
+      }}
+    >
+      {fallbackIcon}
+    </div>
+  );
+}
 
 // Main component optimized with React.memo
 const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
-  // Destructure props with defaults
-  const {
-    font = "system-ui, -apple-system, sans-serif",
-    fontSize = 16,
-    fontWeight = "bold",
-    fontColor = "black",
-    hideAlbumCover = false,
-    albumCoverSize = 60,
-    albumCoverRadius = 8,
-    removeBackground = false,
-    backgroundColor = "white",
-    backgroundRadius = 12,
-    singleLine = false,
-    hideAlbumName = false,
-    showAnimatedIcon = true,
-    animationSpeed = 1.5,
-    symbolType = "eighth",
-    showFloatingSymbols = true,
-    iconSize = 24,
-    fallbackIcon = "🎵",
-    centralSymbolMode = "default",
-    centralCustomText = "♪",
-    centralCustomSvg = "",
-    customSymbolMode = "preset",
-    customSymbol1 = "♪",
-    customSymbol2 = "♫",
-    customSvg1 = "",
-    customSvg2 = "",
-    apiUrl = "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
-    enableSpotifyLink = true,
-  } = props;
+  // Destructure props with defaults using safer approach
+  const font = props["font"] || "system-ui, -apple-system, sans-serif";
+  const fontSize = props["fontSize"] || 16;
+  const fontWeight = props["fontWeight"] || "bold";
+  const fontColor = props["fontColor"] || "black";
+  const hideAlbumCover = props["hideAlbumCover"] || false;
+  const albumCoverSize = props["albumCoverSize"] || 60;
+  const albumCoverRadius = props["albumCoverRadius"] || 8;
+  const removeBackground = props["removeBackground"] || false;
+  const backgroundColor = props["backgroundColor"] || "white";
+  const backgroundRadius = props["backgroundRadius"] || 12;
+  const singleLine = props["singleLine"] || false;
+  const hideAlbumName = props["hideAlbumName"] || false;
+  const showAnimatedIcon = props["showAnimatedIcon"] !== false;
+  const animationSpeed = props["animationSpeed"] || 1.5;
+  const symbolType = props["symbolType"] || "eighth";
+  const showFloatingSymbols = props["showFloatingSymbols"] !== false;
+  const iconSize = props["iconSize"] || 24;
+  const fallbackIcon = props["fallbackIcon"] || "🎵";
+  const centralSymbolMode = props["centralSymbolMode"] || "default";
+  const centralCustomText = props["centralCustomText"] || "♪";
+  const centralCustomSvg = props["centralCustomSvg"] || "";
+  const customSymbolMode = props["customSymbolMode"] || "preset";
+  const customSymbol1 = props["customSymbol1"] || "♪";
+  const customSymbol2 = props["customSymbol2"] || "♫";
+  const customSvg1 = props["customSvg1"] || "";
+  const customSvg2 = props["customSvg2"] || "";
+  const apiUrl =
+    props["apiUrl"] ||
+    "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing";
+  const enableSpotifyLink = props["enableSpotifyLink"] !== false;
 
   const [track, setTrack] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -613,8 +635,8 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
           }
 
           const error = new Error(errorMessage);
-          error.status = response.status;
-          error.shouldRetry = shouldRetry;
+          error["status"] = response.status;
+          error["shouldRetry"] = shouldRetry;
           throw error;
         }
 
@@ -633,7 +655,7 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
       } catch (err) {
         console.error("Fetch error:", err);
 
-        const shouldRetry = err.shouldRetry && retryCountRef.current < 3;
+        const shouldRetry = err["shouldRetry"] && retryCountRef.current < 3;
 
         if (shouldRetry) {
           const delay = getRetryDelay(retryCountRef.current);
@@ -649,8 +671,8 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
         } else {
           setError({
             message: err.message,
-            type: err.status ? "api_error" : "network_error",
-            status: err.status,
+            type: err["status"] ? "api_error" : "network_error",
+            status: err["status"],
             timestamp: Date.now(),
             canRetry: retryCountRef.current < 3,
           });
@@ -940,30 +962,21 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
           }}
         >
           {showAnimatedIcon ? (
-            <Suspense
-              fallback={
-                <AnimationFallback
-                  iconSize={iconSize}
-                  fallbackIcon={fallbackIcon}
-                />
-              }
-            >
-              <LazyAnimatedMusicNote
-                color={iconColor}
-                size={iconSize}
-                animationSpeed={animationSpeed}
-                symbolType={symbolType}
-                showFloatingSymbols={false}
-                centralSymbolMode={centralSymbolMode}
-                centralCustomText={centralCustomText}
-                centralCustomSvg={centralCustomSvg}
-                customSymbolMode={customSymbolMode}
-                customSymbol1={customSymbol1}
-                customSymbol2={customSymbol2}
-                customSvg1={customSvg1}
-                customSvg2={customSvg2}
-              />
-            </Suspense>
+            <AnimatedMusicNote
+              color={iconColor}
+              size={iconSize}
+              animationSpeed={animationSpeed}
+              symbolType={symbolType}
+              showFloatingSymbols={false}
+              centralSymbolMode={centralSymbolMode}
+              centralCustomText={centralCustomText}
+              centralCustomSvg={centralCustomSvg}
+              customSymbolMode={customSymbolMode}
+              customSymbol1={customSymbol1}
+              customSymbol2={customSymbol2}
+              customSvg1={customSvg1}
+              customSvg2={customSvg2}
+            />
           ) : (
             <span style={{ fontSize: `${iconSize}px` }}>{fallbackIcon}</span>
           )}
@@ -1087,30 +1100,21 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
       </div>
       <div style={{ marginLeft: "12px" }}>
         {showAnimatedIcon ? (
-          <Suspense
-            fallback={
-              <AnimationFallback
-                iconSize={iconSize}
-                fallbackIcon={fallbackIcon}
-              />
-            }
-          >
-            <LazyAnimatedMusicNote
-              color={iconColor}
-              size={iconSize}
-              animationSpeed={animationSpeed}
-              symbolType={symbolType}
-              showFloatingSymbols={showFloatingSymbols}
-              centralSymbolMode={centralSymbolMode}
-              centralCustomText={centralCustomText}
-              centralCustomSvg={centralCustomSvg}
-              customSymbolMode={customSymbolMode}
-              customSymbol1={customSymbol1}
-              customSymbol2={customSymbol2}
-              customSvg1={customSvg1}
-              customSvg2={customSvg2}
-            />
-          </Suspense>
+          <AnimatedMusicNote
+            color={iconColor}
+            size={iconSize}
+            animationSpeed={animationSpeed}
+            symbolType={symbolType}
+            showFloatingSymbols={showFloatingSymbols}
+            centralSymbolMode={centralSymbolMode}
+            centralCustomText={centralCustomText}
+            centralCustomSvg={centralCustomSvg}
+            customSymbolMode={customSymbolMode}
+            customSymbol1={customSymbol1}
+            customSymbol2={customSymbol2}
+            customSvg1={customSvg1}
+            customSvg2={customSvg2}
+          />
         ) : (
           <div
             style={{
