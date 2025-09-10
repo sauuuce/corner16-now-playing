@@ -1138,8 +1138,17 @@ const SpotifyNowPlaying = React.memo(function SpotifyNowPlaying(props) {
   );
 });
 
-// Add property controls for Framer's UI
-addPropertyControls(SpotifyNowPlaying, {
+// Wrap the main component with error boundary
+function SpotifyNowPlayingWithErrorBoundary(props) {
+  return (
+    <SpotifyErrorBoundary {...props}>
+      <SpotifyNowPlaying {...props} />
+    </SpotifyErrorBoundary>
+  );
+}
+
+// Add property controls to the exported component
+addPropertyControls(SpotifyNowPlayingWithErrorBoundary, {
   // API Configuration
   apiUrl: {
     type: ControlType.String,
@@ -1410,14 +1419,5 @@ addPropertyControls(SpotifyNowPlaying, {
     hidden: (props) => props.showAnimatedIcon === true,
   },
 });
-
-// Wrap the main component with error boundary
-const SpotifyNowPlayingWithErrorBoundary = (props) => {
-  return (
-    <SpotifyErrorBoundary {...props}>
-      <SpotifyNowPlaying {...props} />
-    </SpotifyErrorBoundary>
-  );
-};
 
 export default SpotifyNowPlayingWithErrorBoundary;
