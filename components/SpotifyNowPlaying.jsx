@@ -1,6 +1,59 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { addPropertyControls, ControlType, useIsStaticRenderer } from "framer";
+
+// Global cache and request management for multiple component instances
+const globalCache = new Map();
+const pendingRequests = new Map();
+const CACHE_TTL = {
+  PLAYING: 5 * 1000, // 5 seconds when playing
+  PAUSED: 60 * 1000, // 60 seconds when paused
+  ERROR: 30 * 1000, // 30 seconds on error
+};
+
+// Request deduplication utility
+async function deduplicatedFetch(url, options = {}) {
+  const cacheKey = `${url}-${JSON.stringify(options)}`;
+
+  // If there's already a pending request for this URL, wait for it
+  if (pendingRequests.has(cacheKey)) {
+    return pendingRequests.get(cacheKey);
+  }
+
+  // Create new request
+  const requestPromise = fetch(url, options).finally(() => {
+    pendingRequests.delete(cacheKey);
+  });
+
+  pendingRequests.set(cacheKey, requestPromise);
+  return requestPromise;
+}
+
+// Intelligent caching utility
+function getCachedData(url, isPlaying) {
+  const cacheKey = `${url}-${isPlaying}`;
+  const cached = globalCache.get(cacheKey);
+
+  if (!cached) return null;
+
+  const now = Date.now();
+  const ttl = isPlaying ? CACHE_TTL.PLAYING : CACHE_TTL.PAUSED;
+
+  if (now - cached.timestamp > ttl) {
+    globalCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCachedData(url, isPlaying, data) {
+  const cacheKey = `${url}-${isPlaying}`;
+  globalCache.set(cacheKey, {
+    data,
+    timestamp: Date.now(),
+  });
+}
 
 // Animated Music Note Component (integrated)
 function AnimatedMusicNote({
@@ -285,15 +338,42 @@ export default function SpotifyNowPlaying(props) {
   const [track, setTrack] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const retryCountRef = useRef(0);
+  const intervalRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const isPlayingRef = useRef(false);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  // Exponential backoff calculation
+  const getRetryDelay = useCallback((attempt) => {
+    const baseDelay = 1000; // 1 second base delay
+    const maxDelay = 30000; // 30 seconds max delay
+    const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+    return delay + Math.random() * 1000; // Add jitter to prevent thundering herd
+  }, []);
 
-    const fetchData = async () => {
+  // Adaptive polling intervals
+  const getPollingInterval = useCallback((isPlaying, hasError) => {
+    if (hasError) return 30000; // 30s on error
+    return isPlaying ? 5000 : 60000; // 5s when playing, 60s when paused
+  }, []);
+
+  // Optimized fetch function with caching and deduplication
+  const fetchData = useCallback(
+    async (isRetry = false) => {
       try {
-        const response = await fetch(apiUrl, {
+        // Check cache first
+        const cachedData = getCachedData(apiUrl, isPlayingRef.current);
+        if (cachedData && !isRetry) {
+          setTrack(cachedData);
+          setError(null);
+          retryCountRef.current = 0;
+          setRetryCount(0);
+          return;
+        }
+
+        const response = await deduplicatedFetch(apiUrl, {
           method: "GET",
-          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
           },
@@ -308,6 +388,11 @@ export default function SpotifyNowPlaying(props) {
             throw new Error(
               "Spotify API temporarily unavailable - please try again later",
             );
+          } else if (response.status === 429) {
+            const retryAfter = response.headers.get("Retry-After") || "60";
+            throw new Error(
+              `Spotify rate limit exceeded - retry after ${retryAfter}s`,
+            );
           } else {
             throw new Error(
               `Unable to connect to Spotify (${response.status})`,
@@ -316,30 +401,80 @@ export default function SpotifyNowPlaying(props) {
         }
 
         const jsonData = await response.json();
+
+        // Update playing state reference
+        isPlayingRef.current = jsonData.is_playing || false;
+
+        // Cache the data
+        setCachedData(apiUrl, isPlayingRef.current, jsonData);
+
         setTrack(jsonData);
         setError(null);
+        retryCountRef.current = 0;
+        setRetryCount(0);
       } catch (err) {
         console.error("Fetch error:", err);
-        if (!controller.signal.aborted) {
-          setError(err.message);
+        setError(err.message);
+
+        // Implement exponential backoff for retries
+        if (retryCountRef.current < 3) {
+          const delay = getRetryDelay(retryCountRef.current);
+          console.log(
+            `Retrying in ${delay}ms (attempt ${retryCountRef.current + 1}/3)`,
+          );
+
+          timeoutRef.current = setTimeout(() => {
+            retryCountRef.current += 1;
+            setRetryCount(retryCountRef.current);
+            fetchData(true);
+          }, delay);
         }
       } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
-    };
+    },
+    [apiUrl, retryCount, getRetryDelay],
+  );
 
+  // Schedule next poll based on current state
+  const scheduleNextPoll = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    const isPlaying = isPlayingRef.current;
+    const hasError = !!error;
+    const interval = getPollingInterval(isPlaying, hasError);
+
+    console.log(
+      `Scheduling next poll in ${interval}ms (playing: ${isPlaying}, error: ${hasError})`,
+    );
+
+    intervalRef.current = setTimeout(() => {
+      fetchData();
+    }, interval);
+  }, [error, getPollingInterval, fetchData]);
+
+  useEffect(() => {
+    // Initial fetch
     fetchData();
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
-
     return () => {
-      controller.abort();
-      clearInterval(interval);
+      if (intervalRef.current) {
+        clearTimeout(intervalRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
   }, [apiUrl]);
+
+  // Schedule next poll when track or error state changes
+  useEffect(() => {
+    if (!loading) {
+      scheduleNextPoll();
+    }
+  }, [track, error, loading, scheduleNextPoll]);
 
   // Check if current content is a podcast
   const isPodcast =
