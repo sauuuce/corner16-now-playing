@@ -70,29 +70,48 @@ After deployment, test your endpoint:
 
 ## 📱 Using with Framer
 
-### TypeScript Component (Recommended)
+### Component Options (Choose One):
 
-1. Copy the content from `components/SpotifyNowPlaying.tsx` 
+#### Option 1: JavaScript Version (Recommended for Framer)
+
+1. Copy the content from `components/SpotifyNowPlayingFramer.jsx`
+2. Create a new code component in Framer
+3. Paste the code - **should work immediately** ✅
+
+**Why this version works best:**
+- ✅ **Pure JavaScript** - No TypeScript compilation issues
+- ✅ **Maximum compatibility** - Works in all Framer environments  
+- ✅ **Simplified architecture** - No complex features that could cause issues
+- ✅ **Direct prop access** - Uses simple prop destructuring pattern
+- ✅ **Battle-tested** - Based on patterns known to work in Framer
+
+#### Option 2: Simplified TypeScript Version
+
+1. Copy the content from `components/SpotifyNowPlayingSimple.tsx`
 2. Create a new code component in Framer
 3. Paste the code
-4. Update the API endpoint URL to your deployed Vercel URL
 
-### Key Features:
-- ✅ **Full TypeScript compatibility** - Works seamlessly in Framer's TypeScript environment
-- ✅ **Self-contained** - All type definitions included inline (no external dependencies)
-- ✅ **Browser-compatible** - Uses proper browser types instead of Node.js types
-- ✅ **Zero compilation errors** - Fully compatible with Framer's build system
+**Features:**
+- ✅ **Simplified TypeScript** - Minimal typing for better compatibility
+- ✅ **Reduced complexity** - No error boundaries or lazy loading
+- ✅ **Self-contained** - All definitions inline
+
+#### Option 3: Full-Featured TypeScript Version
+
+1. Copy the content from `components/SpotifyNowPlaying.tsx`
+2. Create a new code component in Framer
+3. May require additional troubleshooting in some Framer environments
 
 ### Component Integration:
 
-The component comes pre-configured with your deployment URL. Simply update the `apiUrl` prop:
+All versions come pre-configured with the deployment URL. The `apiUrl` prop is set by default:
 
-```typescript
-// Default API URL in component
+```javascript
+// Default API URL in all components
 apiUrl = "https://corner16-now-playing-135s3pi0h-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing"
 
-// Update to your deployed URL
-apiUrl = "https://your-vercel-url.vercel.app/api/spotify/now-playing"
+// Update to your deployed URL via the component properties panel
+// Or modify the default value in the code
 ```
 
 ## 🎵 Component Features
@@ -167,9 +186,11 @@ npm run auth
 ```
 ├── api/
 │   └── spotify/
-│       └── now-playing.js     # Main API endpoint
+│       └── now-playing.js           # Main API endpoint
 ├── components/
-│   └── SpotifyNowPlaying.tsx  # Framer TypeScript component (recommended)
+│   ├── SpotifyNowPlayingFramer.jsx  # JavaScript version (recommended for Framer)
+│   ├── SpotifyNowPlayingSimple.tsx  # Simplified TypeScript version  
+│   └── SpotifyNowPlaying.tsx        # Full-featured TypeScript version
 ├── scripts/
 │   └── get-refresh-token.js   # Authorization helper
 ├── .env.local                 # Your environment variables
