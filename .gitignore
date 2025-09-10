@@ -52,3 +52,12 @@ Thumbs.db
 
 # Testing
 coverage/
+
+# Debug and test files (except in tests/ directory)
+debug-*.js
+test-*.js
+*.debug.js
+
+# Local environment files
+.env.local
+.env*.local
