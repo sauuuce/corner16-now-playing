@@ -50,6 +50,9 @@ Thumbs.db
 # Vercel
 .vercel
 
+# TypeScript build output (not needed for Vercel)
+dist/
+
 # Testing
 coverage/
 

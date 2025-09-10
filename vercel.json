@@ -8,7 +8,6 @@
       "maxDuration": 10
     }
   },
-  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/api/(.*)",

@@ -33,11 +33,8 @@
     "allowJs": true,
     "skipLibCheck": true,
     
-    // Output
-    "outDir": "./dist",
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+    // No output needed for Vercel - it handles TS directly
+    "noEmit": true,
     
     // Other options
     "forceConsistentCasingInFileNames": true,
