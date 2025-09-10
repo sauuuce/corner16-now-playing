@@ -1,4 +1,3 @@
-import { corsMiddleware } from "../../utils/cors";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type {
   SpotifyTokenResponse,
@@ -187,8 +186,18 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ): Promise<VercelResponse> {
-  // Apply secure CORS middleware
-  corsMiddleware(req, res);
+  // Set CORS headers directly
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
 
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
