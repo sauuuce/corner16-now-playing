@@ -14,7 +14,10 @@ npm install
 
 1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new app with these settings:
-   - **Redirect URI**: `http://localhost:3000/callback`
+   - **Redirect URIs** (add one or more depending on your auth method):
+     - `http://localhost:8888/callback` (for server mode)
+     - `https://example.com/callback` (for simple mode)
+     - `https://developer.spotify.com/callback` (for manual mode)
    - **Required Scopes**: `user-read-currently-playing user-read-playback-state`
 3. Note your **Client ID** and **Client Secret**
 
@@ -42,11 +45,30 @@ Run the authorization script to get your refresh token:
 npm run auth
 ```
 
-This will:
-- Start a local server at `http://localhost:3000`
-- Open your browser and click "Authorize Spotify Access"
-- Log in to your Spotify account
-- Copy the refresh token from the success page and add it to your `.env.local` file
+This will start an interactive authentication process. You can also use specific modes:
+
+```bash
+# Interactive mode (recommended) - presents menu of options
+npm run spotify-auth
+
+# Server mode - automatic callback handling
+npm run auth
+
+# Simple mode - manual code paste
+npm run auth:simple
+
+# Manual mode - command line process
+npm run auth:manual
+
+# Exchange existing code
+npm run auth:exchange YOUR_CODE
+```
+
+The script will:
+- Guide you through the authorization process
+- Automatically save your refresh token to `.env.local`
+- Validate the token before saving
+- Provide clear instructions at each step
 
 ### 5. Deploy to Vercel
 
