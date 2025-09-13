@@ -1,6 +1,6 @@
 # Corner16 Now Playing - Agent Reference Guide
 
-*Last updated: 2025-09-09*
+*Last updated: 2025-09-13*
 
 ## Current Project Snapshot
 
@@ -9,7 +9,60 @@
 - **Runtime**: Node.js >=18.0.0 (engines constraint in package.json)
 - **Primary framework**: Vercel Serverless Functions + React/Framer Motion
 - **Repository**: Active Git repo (main branch)
-- **Current status**: Production-ready with recent security improvements
+- **Current status**: Production-ready and stable (CORS secured, auth consolidated)
+
+## Agent Roles and Responsibilities
+
+### 🤖 Cursor Agent
+**Purpose**: Primary development and code implementation agent using Cursor IDE.
+
+**Responsibilities**:
+- Implements features and fixes based on Linear issues
+- Creates and manages branches following naming convention: `cursor/DEV-{issue-number}-{description}`
+- Performs code edits, file management, and refactoring
+- Runs local tests and validates changes
+- Creates pull requests with proper documentation
+- Updates documentation (agents.md, README.md) when workflows change
+
+**Capabilities**:
+- Full file system access via read/write/edit tools
+- Terminal command execution for npm, git, and testing
+- Web search for current information
+- Todo management for complex multi-step tasks
+- MCP Linear integration for issue tracking
+
+### 🎯 Zed Agent
+**Purpose**: Code review, quality assurance, and secondary development using Zed editor.
+
+**Responsibilities**:
+- Reviews pull requests for code quality and standards
+- Performs additional testing and validation
+- Provides alternative implementation perspectives
+- Handles quick fixes and hotfixes when needed
+- Maintains consistency across codebase
+
+**Capabilities**:
+- Same tool access as Cursor Agent
+- Focus on code review and quality checks
+- Can create branches: `zed/DEV-{issue-number}-{description}`
+
+### 👤 Human Pass
+**Purpose**: Final review, decision making, and deployment authorization.
+
+**Responsibilities**:
+- Reviews and approves pull requests
+- Makes architectural decisions
+- Handles production deployments
+- Manages environment variables and secrets
+- Resolves conflicts between agent implementations
+- Provides project direction and priorities
+
+**Handoff Points**:
+1. **Linear Issue Assignment** → Agent picks up work
+2. **PR Creation** → Ready for review
+3. **Review Complete** → Human approval needed
+4. **Merge Decision** → Human executes
+5. **Deployment** → Human triggers
 
 ## Live Dependency Matrix
 
@@ -148,9 +201,35 @@ export default function SpotifyNowPlaying(props) {
 - ⚠️ **Bundle Size**: Full Framer Motion import (optimization opportunity)
 
 ### Linear MCP Integration
-- ❌ **Not Currently Configured**: No Linear MCP integration found
-- 📋 **Recent Project Created**: "Corner 16 Player" project with 11 optimization issues
-- 🔧 **Available for Integration**: MCP tools accessible via Claude Code
+- ✅ **Status**: Fully integrated and functional
+- 📋 **Active Project**: "Corner 16 Player" (ID: 25617bd3-75eb-4e1e-be4c-e0181f28bcf3)
+- 🔧 **Access**: Available through Claude MCP tools in Cursor
+
+**Available MCP Endpoints**:
+1. **Issue Management**:
+   - `create_issue`: Create new Linear issues
+   - `update_issue`: Update issue status, assignee, labels
+   - `list_issues`: Query issues with filters
+   - `get_issue`: Fetch specific issue details
+
+2. **Project Management**:
+   - `list_projects`: View all projects
+   - `get_project`: Get project details
+   - `update_project`: Modify project settings
+
+3. **Team Operations**:
+   - `list_teams`: View available teams
+   - `get_team`: Get team information
+
+**Permissions**:
+- Read: All issue, project, and team data
+- Write: Create/update issues, update project metadata
+- Limited: Cannot delete issues or modify team structure
+
+**Integration Workflow**:
+```
+Linear Issue → MCP Tool → Agent Action → Git Branch → PR → Linear Update
+```
 
 ### Development Tools
 - ✅ **Claude Code**: Configured with local permissions for npm, git, vercel
@@ -243,8 +322,58 @@ SPOTIFY_REFRESH_TOKEN=your_refresh_token
 ### Current Linear Setup
 - **Project**: Corner 16 Player (ID: 25617bd3-75eb-4e1e-be4c-e0181f28bcf3)
 - **Team**: Dev (ID: 4ea3b94e-176a-4f74-9d64-65fab2be6163)  
-- **Issues Created**: 11 optimization issues (DEV-1 through DEV-11)
-- **Priority Distribution**: 1 Urgent, 5 High, 4 Medium, 1 Low
+- **Completed Issues**: 8 (DEV-1, DEV-2, DEV-5, DEV-7, DEV-10, DEV-11, DEV-12, DEV-13)
+- **Canceled Issues**: 3 (DEV-4, DEV-6, DEV-9) - Overcomplicated/unnecessary
+- **Remaining Issues**: 2 (DEV-3, DEV-8) - Low priority
+- **Current Issue**: DEV-14 (This documentation update)
+
+### Issue Lifecycle (Linear ↔ GitHub)
+
+#### 1. **Issue Creation**
+```
+Linear (Backlog) → Agent picks up → Status: In Progress
+```
+- Issues created in Linear with clear acceptance criteria
+- Agent self-assigns or is assigned by human
+- Branch created: `{ide}/DEV-{number}-{description}`
+
+#### 2. **Development Phase**
+```
+In Progress → Code Changes → Local Testing → Commit & Push
+```
+- Agent implements solution following issue requirements
+- Commits follow conventional format: `type: description (#DEV-X)`
+- Regular pushes to feature branch
+
+#### 3. **Pull Request Creation**
+```
+Push to GitHub → Create PR → Link to Linear → Status: In Review
+```
+- PR title: `[DEV-X] Brief description`
+- PR body includes:
+  - Link to Linear issue
+  - Summary of changes
+  - Testing performed
+  - Screenshots if UI changes
+- Linear automatically updates to "In Review" when PR opens
+
+#### 4. **Review Process**
+```
+In Review → Code Review → Request Changes OR Approve
+```
+- Automated checks run (linting, build verification)
+- Second agent or human reviews code
+- Comments addressed in feature branch
+- Linear reflects PR review status
+
+#### 5. **Completion**
+```
+PR Approved → Merge to Main → Auto-close Issue → Status: Done
+```
+- Human merges PR after approval
+- Linear issue automatically moves to "Done"
+- Branch can be deleted
+- Deployment triggered if configured
 
 ### 🚨 **CRITICAL: Multiple PR Integration Protocol**
 When working with multiple PRs that may have overlapping functionality:
@@ -268,6 +397,56 @@ When working with multiple PRs that may have overlapping functionality:
 - Performance optimizations that conflict with error handling
 - Import/export patterns that affect lazy loading
 
+### Prompts & Conventions
+
+#### Commit Message Format
+```
+type(scope): description (#DEV-X)
+
+Types:
+- feat: New feature
+- fix: Bug fix
+- docs: Documentation changes
+- style: Code style changes (formatting, etc)
+- refactor: Code refactoring
+- test: Test additions or modifications
+- chore: Build process or auxiliary tool changes
+
+Example:
+feat(api): implement intelligent polling with backoff (#DEV-1)
+```
+
+#### Documentation Update Policy
+**When to update agents.md**:
+- New tools or dependencies added
+- Workflow processes change
+- Linear integration modifications
+- Agent responsibilities shift
+- New patterns or gotchas discovered
+
+**When to update README.md**:
+- Setup instructions change
+- New features added
+- API endpoints modified
+- Deployment process changes
+- User-facing documentation needs
+
+#### Shared Agent Instructions
+1. **Always check for existing PRs** before starting work
+2. **Read the full issue description** including acceptance criteria
+3. **Update todo list** for complex tasks (3+ steps)
+4. **Test changes locally** before pushing
+5. **Document non-obvious decisions** in code comments
+6. **Update relevant documentation** when changing workflows
+
+#### Code Review Standards
+- Functional correctness
+- Performance implications
+- Security considerations
+- Code readability
+- Test coverage (when applicable)
+- Documentation updates
+
 ### Issue Creation Pattern
 ```bash
 # During development, create issues for:
@@ -290,24 +469,58 @@ vadim/dev-{issue-number}-{description-slug}
 # vadim/dev-5-implement-secure-cors-policy-with-configurable-origins
 ```
 
+## Architectural Decision Records (ADRs)
+
+### ADR-001: CORS Policy Implementation (2025-09-10)
+**Decision**: Implement configurable CORS policy replacing wildcard `*` origin
+**Rationale**: Security best practice to restrict API access to known domains
+**Implementation**: Environment variable `ALLOWED_ORIGINS` with comma-separated domains
+**Status**: ✅ Implemented
+
+### ADR-002: Authentication Script Consolidation (2025-09-11)
+**Decision**: Consolidate 5 authentication scripts into unified solution
+**Rationale**: Reduce maintenance burden and user confusion
+**Implementation**: Single entry point with multiple modes (server, simple, manual)
+**Status**: ✅ Implemented (PR #7)
+
+### ADR-003: Component Architecture for Framer (2025-09-12)
+**Decision**: Maintain three component versions (JS, Simple TS, Full TS)
+**Rationale**: Framer has varying TypeScript support; JS version ensures compatibility
+**Trade-offs**: Code duplication vs guaranteed functionality
+**Status**: ✅ Implemented
+
+### ADR-004: Project Stabilization (2025-09-13)
+**Decision**: Mark project as production-ready, cancel overcomplicated issues
+**Rationale**: Core functionality complete, additional optimizations yield diminishing returns
+**Canceled Issues**: DEV-4 (lazy loading), DEV-6 (client caching), DEV-9 (WebSocket)
+**Status**: ✅ Decided
+
+### ADR-005: MCP Linear Integration (2025-09-13)
+**Decision**: Use Linear MCP tools for issue tracking and project management
+**Rationale**: Unified workflow between IDEs, automated status updates
+**Benefits**: Consistent branch naming, PR linking, automatic issue transitions
+**Status**: ✅ Active
+
 ## Current Tool Update Status
 
 ### Last Updated
 - **Dependencies**: Recent (package-lock.json shows current versions)
-- **Security Updates**: Recent commits show security improvements
-- **Linear Integration**: Newly created (2025-09-09)
+- **Security Updates**: CORS implementation completed
+- **Linear Integration**: Fully functional (2025-09-13)
+- **Auth Scripts**: Consolidated (2025-09-11)
 
 ### Known Issues
 - [ ] **node-fetch**: Using v2.6.12 (should use built-in fetch for Node 18+)
-- [ ] **CORS Security**: Wildcard origins need restriction
+- [x] **CORS Security**: ✅ Fixed - Configurable origins implemented
 - [ ] **Bundle Size**: Full Framer Motion import needs optimization  
 - [ ] **Test Coverage**: No automated testing framework
+- [x] **Auth Scripts**: ✅ Fixed - Consolidated into single solution
 
 ### Planned Upgrades
-- [ ] TypeScript migration for type safety
-- [ ] Test framework implementation (Jest + React Testing Library)
-- [ ] Authentication script consolidation
-- [ ] Repository organization and cleanup
+- [ ] TypeScript migration for type safety (Low priority - DEV-3)
+- [ ] Test framework implementation (Low priority - DEV-8)
+- [ ] Remove legacy node-fetch dependency
+- [ ] Bundle size optimization for Framer Motion
 
 ## Maintenance Instructions
 
@@ -363,7 +576,12 @@ npm run deploy
 - ✅ Linear project/team IDs from real MCP integration
 - ✅ Commands tested and verified functional
 - ✅ Directory structure matches actual project layout
+- ✅ Agent roles and responsibilities documented
+- ✅ MCP endpoints and permissions documented
+- ✅ Issue lifecycle workflow clarified
+- ✅ Architectural decisions recorded with dates
+- ✅ Current project status reflects completed work
 
 ---
 
-*This document represents the actual state of the corner16-now-playing project as of 2025-09-09. All examples, configurations, and references are based on real project files and verified implementations.*
+*This document represents the actual state of the corner16-now-playing project as of 2025-09-13. All examples, configurations, and references are based on real project files and verified implementations. For user-facing setup instructions, see [README.md](./README.md). For technical implementation details and agent workflows, refer to this document.*

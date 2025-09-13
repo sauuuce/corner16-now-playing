@@ -304,3 +304,7 @@ When creating your Spotify app, use these settings:
 4. Deploy with `npm run deploy`
 5. Update your Framer component with the deployed URL
 6. Enjoy your live Spotify integration! 🎵
+
+## 📚 Additional Documentation
+
+For technical implementation details, agent workflows, and development guidelines, see [agents.md](./agents.md).
