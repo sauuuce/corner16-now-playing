@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vercel dev",
     "type-check": "tsc --noEmit",
-    "deploy": "vercel --prod",
+    "deploy": "npm run validate:env && vercel --prod",
+    "predeploy": "npm run validate:env",
+    "validate:env": "node scripts/validate-env.js",
     "spotify-auth": "node scripts/spotify-auth.js",
     "auth": "node scripts/spotify-auth.js --server",
     "auth:simple": "node scripts/spotify-auth.js --simple",
@@ -16,6 +18,7 @@
     "test:auth": "node tests/auth.test.js",
     "test:api": "node tests/api.test.js",
     "test:improved-api": "node tests/improved-api.test.js",
+    "test:env": "npm run validate:env",
     "debug:vercel": "node debug/vercel-debug.js"
   },
   "keywords": [
