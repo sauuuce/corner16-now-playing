@@ -1,8 +1,18 @@
 # Spotify Now Playing API Integration
 
-A complete serverless API solution for displaying your Spotify "Now Playing" status in Framer projects.
+A complete serverless API solution for displaying your Spotify "Now Playing" status in Framer projects. This project provides both a Vercel-hosted API endpoint and React components optimized for Framer integration.
+
+**For detailed agent workflows, MCP integration, and technical implementation details, see [agents.md](./agents.md).**
 
 ## 🚀 Quick Setup
+
+### Prerequisites
+
+- Node.js >=18.0.0 (required)
+- npm (comes with Node.js)
+- Vercel account (for deployment)
+- Spotify Developer account
+- Git (for version control)
 
 ### 1. Install Dependencies
 
@@ -89,6 +99,111 @@ During deployment, add your environment variables:
 
 After deployment, test your endpoint:
 - `https://your-vercel-url.vercel.app/api/spotify/now-playing`
+
+## 🔧 Development Workflow
+
+### Local Development
+
+```bash
+# Start local development server
+npm run dev
+
+# Type check TypeScript files
+npm run type-check
+
+# Run tests
+npm test                # Run API tests
+npm run test:auth      # Test authentication
+npm run test:api       # Test API endpoints
+npm run test:improved-api  # Test enhanced API features
+
+# Validate environment variables
+npm run validate:env
+
+# Debug Vercel deployment
+npm run debug:vercel
+```
+
+### Branch Naming Convention
+
+When creating branches for development:
+- Cursor Agent: `cursor/DEV-{issue-number}-{description}`
+- Zed Agent: `zed/DEV-{issue-number}-{description}`
+- Human developers: `{name}/DEV-{issue-number}-{description}`
+
+Example: `cursor/DEV-15-update-readme-documentation`
+
+### Pull Request Guidelines
+
+1. **PR Title Format**: `[DEV-X] Brief description`
+2. **PR Body Should Include**:
+   - Link to Linear issue (if applicable)
+   - Summary of changes
+   - Testing performed
+   - Screenshots for UI changes
+3. **Review Process**:
+   - All PRs require review before merging
+   - Ensure all tests pass
+   - Update relevant documentation
+   - Follow conventional commit messages
+
+### Commit Message Format
+
+```
+type(scope): description (#DEV-X)
+
+Types:
+- feat: New feature
+- fix: Bug fix
+- docs: Documentation changes
+- style: Code style changes
+- refactor: Code refactoring
+- test: Test additions/modifications
+- chore: Build/auxiliary changes
+
+Example:
+feat(api): implement retry logic with exponential backoff (#DEV-1)
+```
+
+## 🔌 MCP & Linear Setup
+
+### Model Context Protocol (MCP) Integration
+
+This project is integrated with Linear through MCP, enabling IDE agents (Cursor and Zed) to manage issues directly.
+
+#### Cursor Setup
+
+1. Ensure you have the Linear MCP integration enabled in Cursor
+2. The integration provides access to:
+   - Create, update, and query Linear issues
+   - Manage project metadata
+   - Track issue status and assignments
+
+#### Available MCP Commands
+
+- `create_issue`: Create new Linear issues
+- `update_issue`: Update issue status, assignee, labels
+- `list_issues`: Query issues with filters
+- `get_issue`: Fetch specific issue details
+- `list_projects`: View all projects
+- `get_project`: Get project details
+
+#### Linear Project Details
+
+- **Project**: Corner 16 Player
+- **Project ID**: `25617bd3-75eb-4e1e-be4c-e0181f28bcf3`
+- **Team**: Dev (ID: `4ea3b94e-176a-4f74-9d64-65fab2be6163`)
+
+### Issue Workflow
+
+1. Issues are created in Linear with clear acceptance criteria
+2. Agents self-assign or are assigned by humans
+3. Branch is created following naming convention
+4. Development proceeds with regular commits
+5. PR is created and linked to Linear issue
+6. Linear automatically updates status throughout the process
+
+For detailed Linear integration workflows, see [agents.md](./agents.md#development-workflow-with-linear).
 
 ## 🛡️ Environment Variable Validation
 
@@ -242,24 +357,56 @@ npm run auth
 - ✅ Rate limiting considerations (5-second polling interval)
 - ✅ Additional security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection)
 
-## 📦 File Structure
+## 📦 Project Structure
 
 ```
-├── api/
-│   └── spotify/
-│       └── now-playing.js           # Main API endpoint
-├── components/
-│   ├── SpotifyNowPlayingFramer.jsx  # JavaScript version (recommended for Framer)
-│   ├── SpotifyNowPlayingSimple.tsx  # Simplified TypeScript version  
-│   └── SpotifyNowPlaying.tsx        # Full-featured TypeScript version
-├── scripts/
-│   └── get-refresh-token.js   # Authorization helper
-├── .env.local                 # Your environment variables
-├── .env.example              # Environment template
-├── package.json              # Dependencies
-├── vercel.json              # Vercel configuration
-└── README.md                # This file
+spotify-now-playing-api/
+├── 📁 api/                          # Vercel serverless functions
+│   ├── test.js                      # Basic API health check endpoint
+│   └── 📁 spotify/
+│       ├── now-playing.js           # 🔥 Main API endpoint with retry logic
+│       └── [other debug/test files] # Various debugging utilities
+├── 📁 components/                   # React components for Framer
+│   ├── SpotifyNowPlayingFramer.jsx  # ✅ JavaScript version (recommended)
+│   ├── SpotifyNowPlayingSimple.tsx  # Simplified TypeScript version
+│   ├── SpotifyNowPlaying.tsx        # Full-featured TypeScript version
+│   └── AnimatedComponents.jsx       # Animation components
+├── 📁 scripts/                      # Authentication and utility scripts
+│   ├── spotify-auth.js              # 🔧 Unified auth script (npm run auth)
+│   ├── auth-utils.js                # Authentication helper utilities
+│   ├── validate-env.js              # Environment validation
+│   └── 📁 legacy/                   # Deprecated auth scripts
+├── 📁 tests/                        # Test files
+│   ├── api.test.js                  # API endpoint tests
+│   ├── auth.test.js                 # Authentication tests
+│   └── improved-api.test.js         # Enhanced API tests
+├── 📁 docs/                         # Documentation
+│   └── ENVIRONMENT_VALIDATION_GUIDE.md  # Env validation guide
+├── 📁 utils/                        # Utility functions
+│   ├── cors.ts                      # CORS configuration
+│   ├── envMiddleware.js             # Environment middleware
+│   └── validateEnvironment.js       # Environment validation
+├── 📁 types/                        # TypeScript type definitions
+│   ├── components.ts                # Component types
+│   └── spotify.ts                   # Spotify API types
+├── .env.example                     # Environment template
+├── .env.local                       # Your local environment (gitignored)
+├── agents.md                        # 📚 Agent workflows and technical docs
+├── package.json                     # Dependencies and scripts
+├── tsconfig.json                    # TypeScript configuration
+├── vercel.json                      # Vercel deployment config
+└── README.md                        # This file
 ```
+
+### Key Files and Their Purpose
+
+- **`api/spotify/now-playing.js`**: Core API endpoint with token refresh, error handling, and retry logic
+- **`components/SpotifyNowPlayingFramer.jsx`**: Production-ready React component optimized for Framer
+- **`scripts/spotify-auth.js`**: Unified authentication tool supporting multiple auth modes
+- **`agents.md`**: Comprehensive documentation for agent workflows, Linear integration, and development processes
+- **`vercel.json`**: Production deployment configuration with CORS and function settings
+
+For detailed file purposes and implementation examples, see [agents.md](./agents.md#actual-file-structure).
 
 ## 🚀 Deployment Platforms
 
@@ -276,22 +423,98 @@ This API can also be deployed to:
 - Railway
 - Render
 
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+### Documentation Update Policy
+
+**IMPORTANT**: When making changes that affect workflows or integrations, you must update:
+1. **README.md** - User-facing documentation and setup instructions
+2. **agents.md** - Technical details, agent workflows, and Linear integration
+
+### When to Update Documentation
+
+Update **agents.md** when:
+- Adding new tools or dependencies
+- Changing workflow processes
+- Modifying Linear integration
+- Shifting agent responsibilities
+- Discovering new patterns or gotchas
+
+Update **README.md** when:
+- Setup instructions change
+- New features are added
+- API endpoints are modified
+- Deployment process changes
+- User-facing documentation needs updates
+
+### Contribution Process
+
+1. Check for existing issues in Linear or open PRs
+2. Create a branch following our naming convention
+3. Make your changes with clear, descriptive commits
+4. Update relevant documentation
+5. Create a PR with a link to the Linear issue
+6. Ensure all tests pass and documentation is updated
+
+For detailed contribution workflows and Linear integration, see [agents.md](./agents.md#development-workflow-with-linear).
+
 ## 🐛 Troubleshooting
 
-### "Token refresh failed"
+### Common Issues
+
+#### "Token refresh failed"
 - Verify your `SPOTIFY_CLIENT_SECRET` is correct
 - Re-run the authorization script to get a new refresh token
+- Check that all environment variables are properly set in Vercel
 
-### "Nothing playing" always shows
+#### "Nothing playing" always shows
 - Check if you're actually playing music on Spotify
 - Verify your refresh token is valid and properly set
 - Ensure you have the correct scopes: `user-read-currently-playing user-read-playback-state`
+- Test the API endpoint directly to see the response
 
-### CORS errors in Framer
+#### CORS errors in Framer
 - Make sure you're using the full deployed URL (not localhost)
 - **Configure ALLOWED_ORIGINS environment variable** with your domain(s)
 - Check that your domain is included in the allowed origins list
 - In development, localhost origins are automatically allowed
+
+### MCP & Linear Integration Issues
+
+#### Linear MCP Connection Errors
+- Ensure Linear MCP is properly configured in your IDE (Cursor/Zed)
+- Verify you have the correct API permissions
+- Check that project and team IDs match those in [agents.md](./agents.md#current-linear-setup)
+
+#### Linear Sync Issues
+- Issues may take a moment to sync between Linear and GitHub
+- Ensure PR titles include `[DEV-X]` format for automatic linking
+- Check that branch names follow the convention for proper tracking
+
+#### Agent-Specific Issues
+- **Cursor Agent**: Ensure you have the latest MCP integration installed
+- **Zed Agent**: Verify Linear API access is configured
+- For detailed agent troubleshooting, see [agents.md](./agents.md#agent-roles-and-responsibilities)
+
+### Environment Variable Issues
+
+#### Missing Environment Variables
+```bash
+# Validate your environment setup
+npm run validate:env
+```
+
+This will provide detailed error messages about missing or invalid variables.
+
+#### Environment Variable Format
+- `SPOTIFY_CLIENT_ID`: 32-character string
+- `SPOTIFY_CLIENT_SECRET`: 32-character string
+- `SPOTIFY_REFRESH_TOKEN`: Long string obtained from auth process
+- `ALLOWED_ORIGINS`: Comma-separated list of domains
+
+For comprehensive environment validation documentation, see [Environment Validation Guide](docs/ENVIRONMENT_VALIDATION_GUIDE.md)
 
 ## 🔒 CORS Configuration
 
@@ -344,6 +567,36 @@ When creating your Spotify app, use these settings:
 5. Update your Framer component with the deployed URL
 6. Enjoy your live Spotify integration! 🎵
 
-## 📚 Additional Documentation
+## 📚 Additional Resources
 
-For technical implementation details, agent workflows, and development guidelines, see [agents.md](./agents.md).
+### Documentation
+
+- **[agents.md](./agents.md)** - Comprehensive guide for:
+  - Agent roles and responsibilities (Cursor, Zed, Human)
+  - MCP Linear integration details
+  - Development workflow with Linear
+  - Architectural decisions and ADRs
+  - Project-specific gotchas and patterns
+  - Maintenance instructions
+
+- **[Environment Validation Guide](docs/ENVIRONMENT_VALIDATION_GUIDE.md)** - Detailed environment setup and validation
+
+- **[Legacy Auth Scripts README](scripts/legacy/README.md)** - Documentation for deprecated authentication methods
+
+### Quick Links
+
+- [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) - Create and manage Spotify apps
+- [Vercel Dashboard](https://vercel.com) - Deploy and manage your API
+- [Linear](https://linear.app) - Issue tracking and project management
+
+### Support
+
+For issues or questions:
+1. Check the [Troubleshooting](#-troubleshooting) section
+2. Review [agents.md](./agents.md) for technical details
+3. Create an issue in Linear if you have access
+4. Open a GitHub issue for public contributions
+
+---
+
+*Last updated: September 2025 - For the latest project status and completed work, see [agents.md](./agents.md#current-project-snapshot)*
