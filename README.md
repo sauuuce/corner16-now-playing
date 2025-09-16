@@ -90,6 +90,45 @@ During deployment, add your environment variables:
 After deployment, test your endpoint:
 - `https://your-vercel-url.vercel.app/api/spotify/now-playing`
 
+## 🛡️ Environment Variable Validation
+
+This project includes comprehensive environment variable validation to catch configuration errors early:
+
+### Features:
+- **Build-time validation**: Prevents deployment with missing variables
+- **Detailed error messages**: Clear instructions on how to fix issues
+- **Format validation**: Ensures credentials are in the correct format
+- **Early failure detection**: Catches errors before runtime
+
+### Usage:
+
+#### Validate Environment:
+```bash
+npm run validate:env
+```
+
+#### Automatic Validation:
+Environment variables are automatically validated:
+- During `npm run deploy`
+- When API endpoints are called (with helpful error messages)
+- In CI/CD pipelines
+
+#### Error Messages:
+If variables are missing or invalid, you'll see detailed instructions:
+```
+❌ CONFIGURATION ERROR
+========================
+The following required environment variables are missing:
+
+📍 SPOTIFY_CLIENT_ID
+   Description: Spotify application client ID
+   How to get: Get from https://developer.spotify.com/dashboard/applications
+   
+[Additional setup instructions...]
+```
+
+See [Environment Validation Guide](docs/ENVIRONMENT_VALIDATION_GUIDE.md) for detailed documentation.
+
 ## 📱 Using with Framer
 
 ### Component Options (Choose One):
