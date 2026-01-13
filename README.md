@@ -116,6 +116,7 @@ npm test                # Run API tests
 npm run test:auth      # Test authentication
 npm run test:api       # Test API endpoints
 npm run test:improved-api  # Test enhanced API features
+npm run test:security  # Test security headers
 
 # Validate environment variables
 npm run validate:env
@@ -350,12 +351,51 @@ npm run auth
 
 ## 🔐 Security Notes
 
+### API Security
+
 - ✅ Client credentials are handled server-side only
 - ✅ Refresh token is stored securely in environment variables
 - ✅ No sensitive data exposed to client-side code
 - ✅ **Secure CORS policy with configurable origins** (replaces wildcard)
 - ✅ Rate limiting considerations (5-second polling interval)
-- ✅ Additional security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection)
+
+### Security Headers
+
+This project implements **OWASP-recommended security headers** to protect against common web vulnerabilities:
+
+- ✅ **Content-Security-Policy (CSP)**: Prevents XSS and code injection attacks
+- ✅ **X-Frame-Options**: Prevents clickjacking (set to DENY)
+- ✅ **X-Content-Type-Options**: Prevents MIME type sniffing
+- ✅ **Referrer-Policy**: Controls referrer information leakage
+- ✅ **Permissions-Policy**: Disables unnecessary browser features
+- ✅ **Strict-Transport-Security (HSTS)**: Enforces HTTPS connections
+- ✅ **X-XSS-Protection**: Legacy XSS filter for older browsers
+- ✅ **X-DNS-Prefetch-Control**: Optimizes DNS prefetching
+
+**Target Score**: A+ on [securityheaders.com](https://securityheaders.com)
+
+#### Testing Security Headers
+
+```bash
+# Test headers locally (requires dev server running)
+npm run test:security
+
+# Or test manually with curl
+curl -I http://localhost:3000/api/spotify/now-playing
+```
+
+#### Production Testing
+
+After deploying, test your security headers:
+1. Visit [securityheaders.com](https://securityheaders.com)
+2. Enter your API URL: `https://your-app.vercel.app/api/spotify/now-playing`
+3. Target score: **A+**
+
+📚 **Detailed Documentation**: See [Security Headers Guide](docs/SECURITY_HEADERS.md) for:
+- Detailed explanation of each header
+- Configuration guide
+- Troubleshooting CSP violations
+- Future improvements and best practices
 
 ## 📦 Project Structure
 

@@ -18,6 +18,7 @@
     "test:auth": "node tests/auth.test.js",
     "test:api": "node tests/api.test.js",
     "test:improved-api": "node tests/improved-api.test.js",
+    "test:security": "node tests/security-headers.test.js",
     "test:env": "npm run validate:env",
     "debug:vercel": "node debug/vercel-debug.js"
   },

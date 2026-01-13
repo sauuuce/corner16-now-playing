@@ -1,6 +1,6 @@
 # Corner16 Now Playing - Agent Reference Guide
 
-*Last updated: 2025-09-13*
+*Last updated: 2026-01-13*
 
 ## Current Project Snapshot
 
@@ -9,7 +9,8 @@
 - **Runtime**: Node.js >=18.0.0 (engines constraint in package.json)
 - **Primary framework**: Vercel Serverless Functions + React/Framer Motion
 - **Repository**: Active Git repo (main branch)
-- **Current status**: Production-ready and stable (CORS secured, auth consolidated)
+- **Current status**: Production-ready and stable (CORS secured, auth consolidated, security headers implemented)
+- **Security**: OWASP-compliant security headers configured (Target: A+ on securityheaders.com)
 
 ## Agent Roles and Responsibilities
 
@@ -241,8 +242,8 @@ Linear Issue → MCP Tool → Agent Action → Git Branch → PR → Linear Upda
 
 ### 🚨 **Critical Patterns**
 1. **Environment Variables**: Must be set in Vercel dashboard, not just .env files
-2. **CORS Policy**: Currently using `*` wildcard (security concern for production)
-3. **Untracked Files**: 3 test files in root need organization (debug-vercel.js, test-*.js)
+2. **CORS Policy**: ✅ Fixed - Configurable origins via ALLOWED_ORIGINS env variable
+3. **Security Headers**: Configured in vercel.json for all API routes (OWASP-compliant)
 4. **Node Fetch**: Using legacy node-fetch in dev deps when Node 18+ has built-in fetch
 
 ### 🔧 **Framer-Specific Requirements**
@@ -250,6 +251,21 @@ Linear Issue → MCP Tool → Agent Action → Git Branch → PR → Linear Upda
 - Props destructuring with defaults required for Framer property panels
 - Static renderer checks needed: `useIsStaticRenderer()` for animations
 - Property controls support conditional hiding with `hidden: (props) => condition`
+
+### 🔒 **Security Implementation**
+- **Security Headers**: OWASP-compliant headers configured in `vercel.json`
+  - Content-Security-Policy (CSP) with Spotify/Framer allowlist
+  - X-Frame-Options: DENY (anti-clickjacking)
+  - X-Content-Type-Options: nosniff
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy (disables unused browser features)
+  - Strict-Transport-Security (HSTS)
+  - X-XSS-Protection (legacy browser support)
+- **Testing**: Run `npm run test:security` to verify headers locally
+- **Documentation**: See `docs/SECURITY_HEADERS.md` for detailed explanations
+- **Target Score**: A+ on securityheaders.com
+- **CSP Trade-offs**: Using 'unsafe-inline' and 'unsafe-eval' for Framer compatibility
+  - Consider implementing nonces or hashes for better security in future
 
 ### 💡 **Authentication Flow Complexity**
 - 5 different auth scripts with overlapping functionality
@@ -505,15 +521,17 @@ vadim/dev-{issue-number}-{description-slug}
 
 ### Last Updated
 - **Dependencies**: Recent (package-lock.json shows current versions)
-- **Security Updates**: CORS implementation completed
+- **Security Updates**: Security headers implemented (2026-01-13)
+- **CORS Security**: Configurable origins implemented
 - **Linear Integration**: Fully functional (2025-09-13)
 - **Auth Scripts**: Consolidated (2025-09-11)
 
 ### Known Issues
 - [ ] **node-fetch**: Using v2.6.12 (should use built-in fetch for Node 18+)
 - [x] **CORS Security**: ✅ Fixed - Configurable origins implemented
+- [x] **Security Headers**: ✅ Fixed - OWASP-compliant headers configured
 - [ ] **Bundle Size**: Full Framer Motion import needs optimization  
-- [ ] **Test Coverage**: No automated testing framework
+- [ ] **Test Coverage**: No automated testing framework (basic security header tests added)
 - [x] **Auth Scripts**: ✅ Fixed - Consolidated into single solution
 
 ### Planned Upgrades
@@ -556,11 +574,14 @@ npm audit fix
 ```bash
 # Test authentication flow
 npm run auth
-node test-auth.js
+npm run test:auth
 
 # Test API endpoints  
 npm run dev  # Then test http://localhost:3000/api/spotify/now-playing
-node test-api.js
+npm run test:api
+
+# Test security headers (requires dev server running)
+npm run test:security
 
 # Test deployment
 npm run deploy
