@@ -18,7 +18,9 @@
     "test:auth": "node tests/auth.test.js",
     "test:api": "node tests/api.test.js",
     "test:improved-api": "node tests/improved-api.test.js",
+    "test:validation": "node tests/validation.test.js",
     "test:env": "npm run validate:env",
+    "test:all": "npm run test:validation && npm run test:api && npm run test:auth",
     "debug:vercel": "node debug/vercel-debug.js"
   },
   "keywords": [
@@ -34,7 +36,7 @@
     "framer": "^2.4.1",
     "framer-motion": "^10.18.0",
     "react": "^18.3.1",
-    "zod": "^4.3.5"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
