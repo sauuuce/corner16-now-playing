@@ -71,6 +71,8 @@
 | **Production Dependencies** |
 | dotenv | ^17.2.1 | Environment variable management | ✅ Current |
 | express | ^4.18.2 | Local auth server for token exchange | ✅ Current |
+| @upstash/ratelimit | Latest | Rate limiting for serverless functions | ✅ Current |
+| @upstash/redis | Latest | Redis client for Upstash (rate limiting) | ✅ Current |
 | **Development Dependencies** |
 | node-fetch | ^2.6.12 | HTTP client for Node.js auth scripts | ⚠️ Legacy (consider upgrading to built-in fetch) |
 | **Frontend Dependencies** |
@@ -89,7 +91,8 @@ corner16-now-playing/
 ├── 📁 api/                        # Vercel serverless functions
 │   ├── test.js                    # Basic API health check endpoint
 │   └── 📁 spotify/
-│       └── now-playing.js         # 🔥 MAIN API ENDPOINT - Spotify integration
+│       ├── now-playing.js         # 🔥 MAIN API ENDPOINT - Spotify integration (with rate limiting)
+│       └── now-playing-simple.ts  # TypeScript version of API endpoint (with rate limiting)
 ├── 📁 components/                 # React components for Framer
 │   └── SpotifyNowPlaying.jsx      # 🎵 MAIN COMPONENT - 850+ lines, 40+ props
 ├── 📁 scripts/                    # Authentication utilities
@@ -99,9 +102,16 @@ corner16-now-playing/
 │   ├── get-refresh-token-simple.js # 🔧 PRIMARY AUTH SCRIPT (npm run auth)
 │   └── manual-auth.js             # Manual authorization process
 ├── 📄 debug-vercel.js             # 🚨 UNTRACKED - Debug script
-├── 📄 test-auth.js                # 🚨 UNTRACKED - Auth testing
-├── 📄 test-api.js                 # 🚨 UNTRACKED - API testing  
-├── 📄 test-improved-api.js        # 🚨 UNTRACKED - Enhanced API tests
+├── 📁 tests/                      # Test files
+│   ├── api.test.js                # API endpoint tests
+│   ├── auth.test.js               # Authentication tests
+│   ├── improved-api.test.js       # Enhanced API tests
+│   └── rate-limit.test.js         # ✨ NEW - Rate limiting tests
+├── 📁 utils/                      # Utility functions
+│   ├── cors.ts                    # CORS configuration
+│   ├── rate-limit.ts              # ✨ NEW - Rate limiting middleware
+│   ├── envMiddleware.js           # Environment middleware
+│   └── validateEnvironment.js     # Environment validation
 ├── 📄 .env.example                # Environment template
 ├── 📄 package.json                # Dependencies and scripts
 ├── 📄 package-lock.json           # Lock file (npm ecosystem)
@@ -186,7 +196,7 @@ export default function SpotifyNowPlaying(props) {
 - ✅ **OAuth2 Flow**: Implemented with refresh token automation
 - ✅ **Endpoints**: Currently Playing API with 204/200 handling
 - ✅ **Error Handling**: Comprehensive retry logic with exponential backoff
-- ✅ **Rate Limiting**: Awareness implemented, 429 handling present
+- ✅ **Rate Limiting**: Full implementation with IP-based limits and proper headers
 
 ### Vercel Deployment
 - ✅ **Serverless Functions**: `/api/spotify/now-playing` and `/api/test`
@@ -241,8 +251,8 @@ Linear Issue → MCP Tool → Agent Action → Git Branch → PR → Linear Upda
 
 ### 🚨 **Critical Patterns**
 1. **Environment Variables**: Must be set in Vercel dashboard, not just .env files
-2. **CORS Policy**: Currently using `*` wildcard (security concern for production)
-3. **Untracked Files**: 3 test files in root need organization (debug-vercel.js, test-*.js)
+2. **CORS Policy**: Secured with configurable origins (replaced wildcard)
+3. **Rate Limiting**: Requires Upstash Redis for production (falls back to in-memory for dev)
 4. **Node Fetch**: Using legacy node-fetch in dev deps when Node 18+ has built-in fetch
 
 ### 🔧 **Framer-Specific Requirements**
@@ -501,19 +511,36 @@ vadim/dev-{issue-number}-{description-slug}
 **Benefits**: Consistent branch naming, PR linking, automatic issue transitions
 **Status**: ✅ Active
 
+### ADR-006: API Rate Limiting Implementation (2025-01-13)
+**Decision**: Implement IP-based rate limiting using Upstash Redis for API endpoints
+**Rationale**: Prevent abuse and DoS attacks on public API endpoints (HIGH security priority)
+**Implementation**: 
+  - Middleware: `utils/rate-limit.ts` with configurable limits
+  - Anonymous users: 5 requests/hour per IP
+  - Authenticated users: 20/hour (basic), 100/hour (premium) - future enhancement
+  - Proper HTTP headers: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset
+  - 429 status with Retry-After header on limit exceeded
+  - Upstash Redis for production (with in-memory fallback for development)
+**Trade-offs**: 
+  - Requires Upstash Redis setup for production (free tier available)
+  - In-memory fallback not suitable for production (resets on cold starts)
+  - Additional latency (~10-50ms) per request for rate limit check
+**Status**: ✅ Implemented (DEV-18)
+
 ## Current Tool Update Status
 
 ### Last Updated
-- **Dependencies**: Recent (package-lock.json shows current versions)
-- **Security Updates**: CORS implementation completed
+- **Dependencies**: Recent (package-lock.json shows current versions) + Upstash packages added (2025-01-13)
+- **Security Updates**: CORS implementation completed, Rate limiting implemented (2025-01-13)
 - **Linear Integration**: Fully functional (2025-09-13)
 - **Auth Scripts**: Consolidated (2025-09-11)
 
 ### Known Issues
 - [ ] **node-fetch**: Using v2.6.12 (should use built-in fetch for Node 18+)
 - [x] **CORS Security**: ✅ Fixed - Configurable origins implemented
+- [x] **Rate Limiting**: ✅ Implemented - IP-based with Upstash Redis
 - [ ] **Bundle Size**: Full Framer Motion import needs optimization  
-- [ ] **Test Coverage**: No automated testing framework
+- [ ] **Test Coverage**: Automated testing partially implemented (rate limiting tests added)
 - [x] **Auth Scripts**: ✅ Fixed - Consolidated into single solution
 
 ### Planned Upgrades
@@ -556,11 +583,14 @@ npm audit fix
 ```bash
 # Test authentication flow
 npm run auth
-node test-auth.js
+npm run test:auth
 
 # Test API endpoints  
 npm run dev  # Then test http://localhost:3000/api/spotify/now-playing
-node test-api.js
+npm run test:api
+
+# Test rate limiting
+npm run test:rate-limit
 
 # Test deployment
 npm run deploy

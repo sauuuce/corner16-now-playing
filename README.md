@@ -45,6 +45,10 @@ Update `.env.local` with your Spotify app credentials:
 SPOTIFY_CLIENT_ID=your_spotify_client_id_here
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
 SPOTIFY_REFRESH_TOKEN=your_refresh_token_here
+
+# Optional: For production rate limiting with Upstash Redis
+# UPSTASH_REDIS_REST_URL=https://your-redis-instance.upstash.io
+# UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token_here
 ```
 
 ### 4. Get Your Spotify Refresh Token
@@ -94,6 +98,8 @@ During deployment, add your environment variables:
 - `SPOTIFY_CLIENT_ID`: Your Spotify app's Client ID
 - `SPOTIFY_CLIENT_SECRET`: Your Spotify app's Client Secret  
 - `SPOTIFY_REFRESH_TOKEN`: The token you got from step 4
+- `UPSTASH_REDIS_REST_URL` (optional): Upstash Redis URL for production rate limiting
+- `UPSTASH_REDIS_REST_TOKEN` (optional): Upstash Redis token for production rate limiting
 
 ### 6. Test Your API
 
@@ -112,10 +118,11 @@ npm run dev
 npm run type-check
 
 # Run tests
-npm test                # Run API tests
-npm run test:auth      # Test authentication
-npm run test:api       # Test API endpoints
+npm test                    # Run API tests
+npm run test:auth          # Test authentication
+npm run test:api           # Test API endpoints
 npm run test:improved-api  # Test enhanced API features
+npm run test:rate-limit    # Test rate limiting
 
 # Validate environment variables
 npm run validate:env
@@ -348,14 +355,72 @@ If you need a new refresh token:
 npm run auth
 ```
 
-## 🔐 Security Notes
+## 🔐 Security & Rate Limiting
+
+### Security Features
 
 - ✅ Client credentials are handled server-side only
 - ✅ Refresh token is stored securely in environment variables
 - ✅ No sensitive data exposed to client-side code
 - ✅ **Secure CORS policy with configurable origins** (replaces wildcard)
-- ✅ Rate limiting considerations (5-second polling interval)
+- ✅ **IP-based rate limiting** to prevent abuse and DoS attacks
 - ✅ Additional security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection)
+
+### Rate Limiting
+
+All API endpoints are protected with rate limiting to prevent abuse:
+
+#### Default Limits
+- **Anonymous users**: 5 requests/hour per IP address
+- **Authenticated users (basic)**: 20 requests/hour (future enhancement)
+- **Authenticated users (premium)**: 100 requests/hour (future enhancement)
+
+#### Rate Limit Headers
+
+All responses include standard rate limit headers:
+```
+X-RateLimit-Limit: 5           # Maximum requests allowed
+X-RateLimit-Remaining: 4       # Remaining requests in window
+X-RateLimit-Reset: 1673616000  # Unix timestamp when limit resets
+```
+
+#### Rate Limit Exceeded (429 Response)
+
+When the rate limit is exceeded, you'll receive:
+```json
+{
+  "error": "Too many requests",
+  "message": "Rate limit exceeded. Please try again in 3600 seconds.",
+  "retryAfter": 3600
+}
+```
+
+With HTTP headers:
+```
+Status: 429 Too Many Requests
+Retry-After: 3600
+```
+
+#### Production Setup
+
+For production deployments, configure Upstash Redis for distributed rate limiting:
+
+1. Create a free account at [Upstash](https://console.upstash.com/)
+2. Create a new Redis database
+3. Add these environment variables to Vercel:
+   ```
+   UPSTASH_REDIS_REST_URL=https://your-redis-instance.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token_here
+   ```
+
+**Note**: Without Upstash Redis, the API uses in-memory rate limiting, which works for development but is NOT recommended for production (limits reset on serverless function cold starts).
+
+#### Testing Rate Limits
+
+```bash
+# Run rate limiting tests
+npm run test:rate-limit
+```
 
 ## 📦 Project Structure
 
@@ -379,11 +444,13 @@ spotify-now-playing-api/
 ├── 📁 tests/                        # Test files
 │   ├── api.test.js                  # API endpoint tests
 │   ├── auth.test.js                 # Authentication tests
-│   └── improved-api.test.js         # Enhanced API tests
+│   ├── improved-api.test.js         # Enhanced API tests
+│   └── rate-limit.test.js           # Rate limiting tests
 ├── 📁 docs/                         # Documentation
 │   └── ENVIRONMENT_VALIDATION_GUIDE.md  # Env validation guide
 ├── 📁 utils/                        # Utility functions
 │   ├── cors.ts                      # CORS configuration
+│   ├── rate-limit.ts                # Rate limiting middleware
 │   ├── envMiddleware.js             # Environment middleware
 │   └── validateEnvironment.js       # Environment validation
 ├── 📁 types/                        # TypeScript type definitions

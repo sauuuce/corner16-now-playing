@@ -1,7 +1,10 @@
 /**
  * Spotify Now Playing API - Production Version
  * Based on working debug implementation
+ * With rate limiting protection
  */
+
+const { applyRateLimit, RateLimitPresets } = require("../../utils/rate-limit.ts");
 
 module.exports = async (req, res) => {
   // Set CORS headers
@@ -19,6 +22,15 @@ module.exports = async (req, res) => {
 
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Apply rate limiting
+  // Use anonymous rate limit (5 requests/hour) by default
+  // Could be enhanced with authentication to allow higher limits
+  const rateLimitPassed = await applyRateLimit(req, res, RateLimitPresets.ANONYMOUS);
+  if (!rateLimitPassed) {
+    // Rate limit response already sent
+    return;
   }
 
   try {

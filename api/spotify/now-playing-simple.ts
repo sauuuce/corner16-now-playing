@@ -1,8 +1,10 @@
 /**
  * Simplified TypeScript Spotify API based on working JavaScript debug version
+ * With rate limiting protection
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { applyRateLimit, RateLimitPresets } from "../../utils/rate-limit";
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -145,6 +147,15 @@ export default async function handler(
 
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Apply rate limiting
+  // Use anonymous rate limit (5 requests/hour) by default
+  // Could be enhanced with authentication to allow higher limits
+  const rateLimitPassed = await applyRateLimit(req, res, RateLimitPresets.ANONYMOUS);
+  if (!rateLimitPassed) {
+    // Rate limit response already sent
+    return res;
   }
 
   try {
