@@ -4,6 +4,9 @@
     "api/spotify/now-playing.js": {
       "maxDuration": 10
     },
+    "api/spotify/now-playing-zod.ts": {
+      "maxDuration": 10
+    },
     "api/test.js": {
       "maxDuration": 10
     }

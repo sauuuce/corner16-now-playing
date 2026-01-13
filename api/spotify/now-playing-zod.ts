@@ -178,7 +178,7 @@ export default async function handler(
 
   try {
     // Validate request using Zod
-    const validatedRequest = validateRequest({
+    validateRequest({
       method: req.method,
       query: req.query,
     });
@@ -245,13 +245,13 @@ export default async function handler(
       // Rate limiting errors
       if (error.message.includes("Rate limited")) {
         const retryMatch = error.message.match(/retry after (\d+)/);
-        const retryAfter = retryMatch ? retryMatch[1] : "60";
+        const retryAfter = retryMatch && retryMatch[1] ? retryMatch[1] : "60";
         res.setHeader("Retry-After", retryAfter);
         return res.status(429).json(
           createErrorResponse(
             "Rate limited",
             error.message,
-            { retryAfter: parseInt(retryAfter) }
+            { retryAfter: parseInt(retryAfter, 10) }
           )
         );
       }
