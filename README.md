@@ -284,7 +284,7 @@ All versions come pre-configured with the deployment URL. The `apiUrl` prop is s
 
 ```javascript
 // Default API URL in all components
-apiUrl = "https://corner16-now-playing-135s3pi0h-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing"
+apiUrl = "https://corner16-now-playing.vercel.app/api/spotify/now-playing"
 
 // Update to your deployed URL via the component properties panel
 // Or modify the default value in the code

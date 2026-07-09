@@ -156,7 +156,7 @@ export default function SpotifyNowPlaying(props) {
   const {
     font = "system-ui, -apple-system, sans-serif",
     fontSize = 16,
-    apiUrl = "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
+    apiUrl = "https://corner16-now-playing.vercel.app/api/spotify/now-playing",
     showAnimatedIcon = true,
     // ... 35+ more props
   } = props;

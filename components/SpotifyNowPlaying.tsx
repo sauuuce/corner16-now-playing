@@ -669,7 +669,7 @@ const SpotifyNowPlaying = React.memo<SpotifyNowPlayingProps>(
       customSymbol2 = "♫",
       customSvg1 = "",
       customSvg2 = "",
-      apiUrl = "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
+      apiUrl = "https://corner16-now-playing.vercel.app/api/spotify/now-playing",
       enableSpotifyLink = true,
     } = props;
 
@@ -1295,7 +1295,7 @@ addPropertyControls(SpotifyNowPlayingWithErrorBoundary, {
     type: ControlType.String,
     title: "API URL",
     defaultValue:
-      "https://corner16-now-playing-6suud6888-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
+      "https://corner16-now-playing.vercel.app/api/spotify/now-playing",
     placeholder: "Enter your deployed API URL",
   },
   enableSpotifyLink: {

@@ -63,7 +63,7 @@ const SpotifyNowPlaying = (props) => {
   const animationSpeed = props.animationSpeed || 1.5;
   const iconSize = props.iconSize || 24;
   const fallbackIcon = props.fallbackIcon || "🎵";
-  const apiUrl = props.apiUrl || "https://corner16-now-playing-135s3pi0h-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing";
+  const apiUrl = props.apiUrl || "https://corner16-now-playing.vercel.app/api/spotify/now-playing";
   const enableSpotifyLink = props.enableSpotifyLink !== false;
 
   const [track, setTrack] = useState(null);
@@ -387,7 +387,7 @@ addPropertyControls(SpotifyNowPlaying, {
     type: ControlType.String,
     title: "API URL",
     defaultValue:
-      "https://corner16-now-playing-135s3pi0h-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
+      "https://corner16-now-playing.vercel.app/api/spotify/now-playing",
     placeholder: "Enter your deployed API URL",
   },
   enableSpotifyLink: {

@@ -115,7 +115,7 @@ const SpotifyNowPlaying: React.FC<SpotifyNowPlayingProps> = (props) => {
     animationSpeed = 1.5,
     iconSize = 24,
     fallbackIcon = "🎵",
-    apiUrl = "https://corner16-now-playing-135s3pi0h-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
+    apiUrl = "https://corner16-now-playing.vercel.app/api/spotify/now-playing",
     enableSpotifyLink = true,
   } = props;
 
@@ -446,7 +446,7 @@ addPropertyControls(SpotifyNowPlaying, {
     type: ControlType.String,
     title: "API URL",
     defaultValue:
-      "https://corner16-now-playing-135s3pi0h-sauce-projects-7fcf076e.vercel.app/api/spotify/now-playing",
+      "https://corner16-now-playing.vercel.app/api/spotify/now-playing",
     placeholder: "Enter your deployed API URL",
   },
   enableSpotifyLink: {
