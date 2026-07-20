@@ -165,7 +165,6 @@ export default function SpotifyNowPlaying(props) {
 ### Vercel Configuration (vercel.json)
 ```json
 {
-  "public": true,
   "functions": {
     "api/spotify/now-playing.js": { "maxDuration": 10 },
     "api/test.js": { "maxDuration": 10 }
